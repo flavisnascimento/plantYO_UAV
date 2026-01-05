@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Controle - Plantio com Drone</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-blpayEPid6a9cqNajxJhzaMPCyZldwc&libraries=drawing"></script>
+  <script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+  
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    
+    .tab-btn-active { 
+      background-color: rgb(14 116 144); 
+      color: white; 
+    }
+    
+    .mission-card { 
+      transition: all 0.3s ease; 
+    }
+    
+    .mission-card:hover { 
+      transform: translateY(-2px); 
+    }
+    
+    .status-dot { 
+      animation: pulse 2s infinite; 
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+     #validation-canvas {
+      cursor: crosshair;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      background-color: white;
+    }
+
+    .validation-mode-btn {
+      transition: all 0.2s ease;
+    }
+
+    .validation-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .validation-legend-box {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 0.125rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans h-screen">
+  <div class="h-full flex flex-col">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-cyan-700 to-cyan-800 text-white p-4 flex justify-between items-center shadow-lg">
+      <div class="flex items-center space-x-4">
+        <!-- Botão de Baixar KML -->
+        <button onclick="downloadKML()"
+                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 flex items-center space-x-2 hover:scale-105">
+          <span>📥</span>
+          <span>Baixar KML</span>
+        </button>
+
+        <!-- Botão de Importar KML -->
+        <button onclick="document.getElementById('kml-upload').click()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 flex items-center space-x-2 hover:scale-105">
+          <span>📂</span>
+          <span>Importar KML</span>
+        </button>
+        
+        <!-- input escondido para abrir o file picker -->
+        <input id="kml-upload" type="file" accept=".kml" class="hidden" />
+
+        <!-- Status do ROS -->
+        <div class="flex items-center space-x-2">
+          <div id="status-indicator" class="h-4 w-4 rounded-full bg-red-500 status-dot"></div>
+          <span id="status-text" class="text-sm font-medium">Desconectado do ROS</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex flex-1 overflow-hidden">
+      <!-- Map -->
+      <div id="map" class="w-2/3 h-full border-r border-gray-200"></div>
+      
+      <!-- Sidebar -->
+      <aside class="w-1/3 bg-gray-50 overflow-y-auto">
+        <!-- Drone Status -->
+        <div class="p-4 bg-white border-b border-gray-200 shadow-sm">
+          <h2 class="text-lg font-semibold mb-3 text-gray-800">Status do Drone</h2>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Bateria:</span>
+              <span id="telemetry-battery" class="font-medium text-gray-900">N/A</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Armado:</span>
+              <span id="telemetry-armed" class="font-medium text-gray-900">N/A</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Modo:</span>
+              <span id="telemetry-mode" class="font-medium text-gray-900">N/A</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">GPS:</span>
+              <span id="telemetry-gps" class="font-medium text-gray-900">N/A</span>
+            </div>
+            <div class="col-span-2 flex justify-between pt-2 border-t border-gray-200">
+              <span class="text-gray-600">Status Missão:</span>
+              <span id="telemetry-mission-status" class="font-bold text-cyan-700">Aguardando</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="p-4 bg-white border-b border-gray-200">
+          <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            <button class="tab-btn tab-btn-active flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200" onclick="setTab('grid')">
+              <span class="block">🌾</span>
+              <span class="text-xs">Grid</span>
+            </button>
+            <button class="tab-btn flex-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-all duration-200" onclick="setTab('pontos')">
+              <span class="block">📍</span>
+              <span class="text-xs">Pontos</span>
+            </button>
+            <button class="tab-btn flex-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-all duration-200" onclick="setTab('validacao')">
+              <span class="block">📊</span>
+              <span class="text-xs">Validação</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="p-4 space-y-4">
+          <!-- Grid Tab -->
+          <div id="tab-grid" class="tab-pane">
+            <div class="mission-card bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+              <h3 class="text-lg font-semibold mb-4 text-gray-800">Configuração da Missão</h3>
+              
+
+              <!-- Spacing -->
+              <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Espaçamento entre plantas (X) -->
+                <div>
+                  <label for="spacingX" class="block text-sm font-medium text-gray-700 mb-2">
+                    Espaçamento entre plantas (X) (m):
+                  </label>
+                  <select id="spacingX"
+                          class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                    <option value="1.5">1.5m</option>
+                    <option value="2.0">2.0m</option>
+                    <option value="2.5" selected>2.5m</option>
+                    <option value="3.0">3.0m</option>
+                    <option value="4.0">4.0m</option>
+                    <option value="5.0">5.0m</option>
+                  </select>
+                </div>
+
+                <!-- Espaçamento entre linhas (Y) -->
+                <div>
+                  <label for="spacingY" class="block text-sm font-medium text-gray-700 mb-2">
+                    Espaçamento entre linhas (Y) (m):
+                  </label>
+                  <select id="spacingY"
+                          class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                    <option value="1.5">1.5m</option>
+                    <option value="2.0">2.0m</option>
+                    <option value="2.5" selected>2.5m</option>
+                    <option value="3.0">3.0m</option>
+                    <option value="4.0">4.0m</option>
+                    <option value="5.0">5.0m</option>
+                  </select>
+                </div>
+              </div>
+
+
+              <!-- Species Selection -->
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Seleção de Espécies (uma de cada grupo):</label>
+                <div class="space-y-3">
+                  <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                    <label class="block text-sm font-semibold text-green-800 mb-2">🌿 Ervas:</label>
+                    <select id="ervas-select" class="w-full p-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                      <option value="Erva-doce">Erva-doce</option>
+                      <option value="Camomila">Camomila</option>
+                      <option value="Capim-cidreira">Capim-cidreira</option>
+                      <option value="Hortelã">Hortelã</option>
+                      <option value="Manjericão">Manjericão</option>
+                    </select>
+                  </div>
+                  <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <label class="block text-sm font-semibold text-yellow-800 mb-2">🌿 Arbustos:</label>
+                    <select id="arbustos-select" class="w-full p-2 border border-yellow-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                      <option value="Hibisco">Hibisco</option>
+                      <option value="Manacá">Manacá</option>
+                      <option value="Café">Café</option>
+                      <option value="Pitanga">Pitanga</option>
+                      <option value="Azaleia">Azaleia</option>
+                    </select>
+                  </div>
+                  <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <label class="block text-sm font-semibold text-blue-800 mb-2">🌳 Árvores:</label>
+                    <select id="arvores-select" class="w-full p-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="Ipê">Ipê</option>
+                      <option value="Jatobá">Jatobá</option>
+                      <option value="Jacarandá">Jacarandá</option>
+                      <option value="Pau-brasil">Pau-brasil</option>
+                      <option value="Cedro">Cedro</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <!-- Clear Button -->
+              <button
+                onclick="clearPolygon()"
+                class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300 hover:scale-105 mb-4">
+                🗑️ Limpar Polígono
+              </button>
+              <!-- Send Mission Button -->
+              <button onclick="uploadMission()" class="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2">
+                <span>🚀</span>
+                <span>Enviar Missão + Validar</span>
+              </button>
+
+              <div id="val-resultado-grid" class="mt-4 text-sm font-medium"></div>
+            </div>
+          </div>
+
+          <!-- Points Tab -->
+          <div id="tab-pontos" class="tab-pane hidden">
+            <div class="mission-card bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+              <h3 class="text-lg font-semibold mb-4 text-gray-800">Plantio por Pontos Manuais</h3>
+              
+              <!-- Category Selection -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Grupo de Espécie:</label>
+                <select id="category-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent" onchange="updateSpeciesOptions()">
+                  <option value="Ervas">🌿 Ervas</option>
+                  <option value="Arbustos">🌿 Arbustos</option>
+                  <option value="Árvores">🌳 Árvores</option>
+                </select>
+              </div>
+
+              <!-- Species Selection -->
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Espécie:</label>
+                <select id="species-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"></select>
+              </div>
+
+              <!-- Clear Points Button -->
+              <button onclick="clearPoints()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-all duration-300 hover:scale-105 mb-4">
+                🗑️ Limpar Pontos
+              </button>
+
+              <!-- Point Counter -->
+              <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-sm text-gray-600 mb-2">💡 Clique no mapa para adicionar pontos de plantio</p>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-gray-700">Pontos adicionados:</span>
+                  <span id="point-count" class="text-lg font-bold text-cyan-600">0</span>
+                </div>
+              </div>
+
+              <!-- Send Points Button -->
+              <button onclick="uploadMission()" class="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2 mt-4">
+                <span>🚀</span>
+                <span>Enviar Pontos</span>
+              </button>
+            </div>
+          </div>
+
+            <!-- Validation Tab - Sistema de Parcelas de Monitoramento -->
+          <div id="tab-validacao" class="tab-pane hidden">
+            <div class="mission-card bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+              <h3 class="text-lg font-bold mb-3 text-gray-800 flex items-center gap-2">
+                🌲 Parcelas de Monitoramento
+              </h3>
+              <p class="text-sm text-gray-600 mb-4">Resolução SMA 32/2014 e Portaria CBRN 01/2015</p>
+
+              <!-- Tipo de Vegetação -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Vegetação:</label>
+                <select id="tipo-vegetacao" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500" onchange="State.tipoVegetacao = this.value">
+                  <option value="cerrado">Cerradão/Cerrado stricto sensu</option>
+                  <option value="floresta">Florestas Ombrófilas e Estacionais</option>
+                  <option value="restinga">Restinga Florestal</option>
+                  <option value="mata_ciliar">Mata Ciliar em região de Cerrado</option>
+                  <option value="manguezal">Manguezal</option>
+                </select>
+              </div>
+
+              <!-- Modo de Operação -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Modo:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button onclick="setValidationMode('desenhar')" class="validation-mode-btn bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2">
+                    ➕ Desenhar Talhão
+                  </button>
+                  <button onclick="setValidationMode('selecionar')" class="validation-mode-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2">
+                    📍 Selecionar Talhão
+                  </button>
+                </div>
+              </div>
+
+              <!-- Canvas de Validação -->
+              <div class="mb-4">
+                <canvas id="validation-canvas" width="280" height="200"></canvas>
+              </div>
+
+              <!-- Legenda -->
+              <div class="mb-4 grid grid-cols-2 gap-2 text-xs">
+                <div class="validation-legend">
+                  <div class="validation-legend-box bg-blue-200 border border-blue-500"></div>
+                  <span>Talhões</span>
+                </div>
+                <div class="validation-legend">
+                  <div class="validation-legend-box bg-green-200 border border-green-500"></div>
+                  <span>Selecionado</span>
+                </div>
+                <div class="validation-legend">
+                  <div class="validation-legend-box bg-red-400"></div>
+                  <span>Parcelas (100m²)</span>
+                </div>
+                <div class="validation-legend">
+                  <div class="validation-legend-box bg-yellow-800" style="height: 2px; margin-top: 7px;"></div>
+                  <span>Linha Amostral</span>
+                </div>
+              </div>
+
+              <!-- Botões de Ação -->
+              <div class="space-y-2 mb-4">
+                <button onclick="finalizarTalhao()" id="btn-finalizar-talhao" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium hidden">
+                  Finalizar Talhão
+                </button>
+                
+                <button onclick="criarParcelas()" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                  🔢 Criar Parcelas
+                </button>
+                
+                <button onclick="exportarRelatorioValidacao()" class="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                  📄 Exportar Relatório
+                </button>
+                
+                <button onclick="limparValidacao()" class="w-full bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                  🗑️ Limpar Tudo
+                </button>
+              </div>
+
+              <!-- Informações do Talhão -->
+              <div id="validation-info" class="p-3 bg-green-50 rounded-md border border-green-200">
+                <p class="text-gray-500 text-sm">Nenhum talhão selecionado</p>
+              </div>
+
+              <!-- Instruções -->
+              <div class="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+                <h4 class="font-semibold text-blue-800 mb-2 text-sm">Instruções:</h4>
+                <ol class="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                  <li>Desenhe um talhão clicando pontos no canvas</li>
+                  <li>Finalize o talhão (mín. 3 pontos)</li>
+                  <li>Selecione o talhão criado</li>
+                  <li>Clique "Criar Parcelas"</li>
+                  <li>Exporte o relatório</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+<script src="/static/main.js"></script>
+
+</body>
+</html>

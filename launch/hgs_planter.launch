@@ -1,0 +1,52 @@
+<launch>
+  <!-- 
+    C-SDVRP Planter Launch File
+    Sistema de plantio com drone usando HGS-CVRP
+    Baseado em Petris (2024) e Vidal (2022)
+  -->
+
+  <!-- Parâmetros do Talhão (100x100m) -->
+  <arg name="grid_size_x" default="100.0" />
+  <arg name="grid_size_y" default="100.0" />
+  <arg name="waypoint_spacing" default="5.0" />
+  <arg name="line_spacing" default="5.0" />
+  <arg name="base_x" default="50.0" />
+  <arg name="base_y" default="0.0" />
+
+  <!-- Parâmetros do Drone (Dispenser) -->
+  <arg name="capacity_erva" default="100" />
+  <arg name="capacity_arbusto" default="100" />
+  <arg name="capacity_arvore" default="100" />
+  <arg name="seeds_per_waypoint" default="15" />
+  <arg name="drone_autonomy" default="2250.0" />
+  <arg name="reserve_percent" default="0.10" />
+
+  <!-- Parâmetros do Solver -->
+  <arg name="solver_time_limit" default="30.0" />
+
+  <!-- Nó de Plantio C-SDVRP -->
+  <node name="hgs_planter" pkg="plantyo_uav" type="hgs_planter_node.py" output="screen">
+    <!-- Talhão -->
+    <param name="grid_size_x" value="$(arg grid_size_x)" />
+    <param name="grid_size_y" value="$(arg grid_size_y)" />
+    <param name="waypoint_spacing" value="$(arg waypoint_spacing)" />
+    <param name="line_spacing" value="$(arg line_spacing)" />
+    <param name="base_x" value="$(arg base_x)" />
+    <param name="base_y" value="$(arg base_y)" />
+    
+    <!-- Drone -->
+    <param name="capacity_erva" value="$(arg capacity_erva)" />
+    <param name="capacity_arbusto" value="$(arg capacity_arbusto)" />
+    <param name="capacity_arvore" value="$(arg capacity_arvore)" />
+    <param name="seeds_per_waypoint" value="$(arg seeds_per_waypoint)" />
+    <param name="drone_autonomy" value="$(arg drone_autonomy)" />
+    <param name="reserve_percent" value="$(arg reserve_percent)" />
+    
+    <!-- Solver -->
+    <param name="solver_time_limit" value="$(arg solver_time_limit)" />
+  </node>
+
+  <!-- Nó de posição GPS (opcional) -->
+  <node name="gps_web_stream" pkg="plantyo_uav" type="position_node.py" output="screen" />
+
+</launch>

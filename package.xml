@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>plantyo_uav</name>
+  <version>1.0.0</version>
+  <description>PlantYO UAV - Drone planting system with C-SDVRP (HGS-CVRP)</description>
+
+  <maintainer email="flanascimento@example.com">Felipe Nascimento</maintainer>
+  <author email="flanascimento@example.com">Felipe Nascimento</author>
+
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+
+  <export>
+  </export>
+
+</package>

@@ -1,0 +1,115 @@
+# ============================================================
+# HGS Planter Configuration
+# Sistema de Plantio com Drone usando HGS-CVRP
+# ============================================================
+
+# Parâmetros do Grid (Talhão)
+# -----------------------------------------------------------
+grid:
+  # Dimensões do talhão em metros
+  size_x: 100.0
+  size_y: 100.0
+  
+  # Espaçamento entre waypoints (metros)
+  waypoint_spacing: 4.0
+  
+  # Espaçamento entre linhas (metros)
+  line_spacing: 4.0
+  
+  # Posição da base (centro-inferior do talhão)
+  # Nota: calculada automaticamente como (size_x/2, 0)
+  
+# Parâmetros do Drone
+# -----------------------------------------------------------
+drone:
+  # Capacidade do dispenser (total de sementes)
+  # 100 erva + 100 arbusto + 100 árvore = 300
+  dispenser_capacity: 300
+  
+  # Autonomia útil em metros
+  # (já considerando 10% de reserva: 2500m * 0.9 = 2250m)
+  autonomy: 2250.0
+  
+  # Porcentagem de reserva de autonomia
+  reserve_percent: 0.10
+
+# Parâmetros do Solver HGS
+# -----------------------------------------------------------
+solver:
+  # Tempo limite para o solver (segundos)
+  time_limit: 30.0
+  
+  # Número máximo de veículos (0 = automático)
+  # Calculado automaticamente baseado em capacidade e demanda
+  max_vehicles: 0
+
+# Parâmetros da Missão
+# -----------------------------------------------------------
+mission:
+  # Altitude de cruzeiro (metros)
+  cruising_altitude: 2.5
+  
+  # Altitude de plantio (metros)
+  planting_altitude: 1.0
+  
+  # Tolerância de posição para considerar que chegou no waypoint (metros)
+  position_tolerance: 1.0
+  
+  # Timeout para navegação (segundos)
+  navigation_timeout: 60.0
+  
+  # Tempo de espera para plantar em cada waypoint (segundos)
+  planting_time: 2.0
+
+# Parâmetros do UAV
+# -----------------------------------------------------------
+uav:
+  # Nome do UAV no MRS system
+  name: "uav1"
+  
+  # Frame de referência
+  frame_id: "world"
+
+# Padrão de Plantio
+# -----------------------------------------------------------
+# Sequência: Erva → Arbusto → Árvore → Arbusto → Erva (ciclo de 5)
+# Em cada waypoint: 5 erva + 5 arbusto + 5 árvore = 15 sementes
+planting_pattern:
+  sequence:
+    - "Erva"
+    - "Arbusto"
+    - "Árvore"
+    - "Arbusto"
+    - "Erva"
+  
+  seeds_per_waypoint:
+    erva: 5
+    arbusto: 5
+    arvore: 5
+    total: 15
+
+# Opções de Execução
+# -----------------------------------------------------------
+options:
+  # Executar missão automaticamente após resolver
+  auto_execute: true
+  
+  # Modo verbose (logs detalhados)
+  verbose: true
+  
+  # Salvar logs da missão
+  save_logs: true
+  log_directory: "~/.ros/hgs_planter_logs"
+
+# Comparação com outros algoritmos (para futuro)
+# -----------------------------------------------------------
+comparison:
+  # Habilitar comparação
+  enabled: false
+  
+  # Algoritmos para comparar
+  algorithms:
+    - name: "HGS-CVRP"
+      enabled: true
+    - name: "AHA"
+      enabled: false
