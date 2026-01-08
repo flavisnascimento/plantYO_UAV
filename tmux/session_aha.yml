@@ -53,7 +53,7 @@ windows:
   - rviz:
       layout: tiled
       panes:
-        - waitForControl; rviz -d /home/flanascimento/rma2025_ws/src/mrs_computer_vision_examples/python/plantYO_UAV/config/planter_rviz.rviz
+        - waitForControl; rviz -d (rospack find plantyo_uav)/config/planter_rviz.rviz
         - waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
         - waitForTime; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
   - camera:
