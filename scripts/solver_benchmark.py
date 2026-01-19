@@ -30,6 +30,9 @@ from typing import List, Dict, Tuple, Optional, Any
 from enum import Enum
 import math
 
+# Import João's TSP-Split Solver from modular file
+from joao_tsp_solver import JoaoTSPSolver, SolverResult as JoaoSolverResult
+
 
 # =============================================================================
 # DATA STRUCTURES
@@ -46,6 +49,7 @@ class BenchmarkInstance:
     num_waypoints: int
     description: str = ""
     optimal_known: Optional[float] = None  # Melhor solução conhecida
+    coordinates: Optional[List[Tuple[float, float]]] = None  # Coordenadas dos waypoints
     
     @classmethod
     def from_grid(cls, 
@@ -105,7 +109,8 @@ class BenchmarkInstance:
             capacity=capacity,
             autonomy=autonomy,
             num_waypoints=n - 1,  # Exclui base
-            description=f"Grid {grid_size_x}x{grid_size_y}m, spacing={spacing}m, {n-1} waypoints"
+            description=f"Grid {grid_size_x}x{grid_size_y}m, spacing={spacing}m, {n-1} waypoints",
+            coordinates=waypoints  # Salva coordenadas para uso pelo solver TSP
         )
 
 
@@ -593,51 +598,19 @@ class AHASolverBenchmark(BaseSolver):
 
 
 # =============================================================================
-# PLACEHOLDER PARA SOLVER DO JOÃO
+# JOÃO'S TSP-SPLIT SOLVER (imported from joao_tsp_solver.py)
 # =============================================================================
-
-class JoaoSolverBenchmark(BaseSolver):
-    """
-    [PLACEHOLDER] Solver do João
-    
-    TODO: Implementar quando tiver acesso ao código/algoritmo
-    
-    Informações necessárias:
-      - Nome do método/algoritmo
-      - Referência bibliográfica
-      - Código fonte ou API
-    """
-    
-    def __init__(self):
-        self.available = False
-    
-    @property
-    def name(self) -> str:
-        return "João-Solver"
-    
-    @property
-    def reference(self) -> str:
-        return "[PLACEHOLDER] - A ser definido"
-    
-    def solve(self,
-              distance_matrix: np.ndarray,
-              demands: List[int],
-              capacity: int,
-              autonomy: float,
-              time_limit: float = 30.0,
-              **kwargs) -> SolverResult:
-        
-        # TODO: Implementar quando tiver o código
-        return SolverResult(
-            solver_name=self.name,
-            instance_name=kwargs.get('instance_name', 'unknown'),
-            routes=[],
-            total_distance=float('inf'),
-            num_routes=0,
-            computation_time=0,
-            feasible=False,
-            metadata={'error': 'Solver não implementado ainda'}
-        )
+# 
+# The JoaoTSPSolver class is now in a separate modular file for better
+# organization and reusability. It implements:
+#   - TSP solving with Lin-Kernighan heuristic
+#   - Optimal split using dynamic programming
+#   - 2-opt local search refinement
+#
+# Import: from joao_tsp_solver import JoaoTSPSolver
+# 
+# See joao_tsp_solver.py for full documentation and implementation details.
+# =============================================================================
 
 
 # =============================================================================
@@ -842,7 +815,8 @@ class BenchmarkRunner:
                         capacity=instance.capacity,
                         autonomy=instance.autonomy,
                         time_limit=time_limit,
-                        instance_name=instance.name
+                        instance_name=instance.name,
+                        coordinates=instance.coordinates  # Passa coordenadas para solver TSP
                     )
                     
                     # Valida solução
@@ -1108,7 +1082,11 @@ def main():
     runner.add_solver(NearestNeighborSolver())  # Baseline
     runner.add_solver(AHASolverBenchmark(population_size=30, max_iterations=100))
     runner.add_solver(HGSSolverBenchmark())
-    # runner.add_solver(JoaoSolverBenchmark())  # Descomentar quando implementado
+    
+    # Solver do João - TSP com Lin-Kernighan
+    # Duas variantes: split greedy (sua sugestão) e split ótimo (DP)
+    runner.add_solver(JoaoTSPSolver(split_strategy='greedy', use_2opt_refinement=True))
+    runner.add_solver(JoaoTSPSolver(split_strategy='optimal', use_2opt_refinement=True))
     
     # Adiciona instâncias de teste
     runner.add_standard_instances()
