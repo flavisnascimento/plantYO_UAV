@@ -1,0 +1,27 @@
+<launch>
+  
+
+  <!-- Parâmetros do AHA -->
+  <arg name="population_size" default="40" doc="Tamanho da população"/>
+  <arg name="max_iterations" default="120" doc="Número máximo de iterações"/>
+
+  <!-- Parâmetros de voo -->
+  <arg name="cruising_altitude" default="2.5" doc="Altitude de cruzeiro (m)"/>
+  <arg name="planting_altitude" default="1.0" doc="Altitude de plantio (m)"/>
+  <arg name="position_tolerance" default="1.0" doc="Tolerância de posição (m)"/>
+
+  <!-- Nó principal AHA -->
+  <node name="aha_planter" pkg="plantyo_uav" type="aha_optimizer.py" output="screen" required="true">
+    <param name="optimize_trajectory" value="true"/>
+    <param name="population_size" value="$(arg population_size)"/>
+    <param name="max_iterations" value="$(arg max_iterations)"/>
+    <param name="cruising_altitude" value="$(arg cruising_altitude)"/>
+    <param name="planting_altitude" value="$(arg planting_altitude)"/>
+    <param name="position_tolerance" value="$(arg position_tolerance)"/>
+  </node>
+
+  <!-- Monitor de alertas -->
+  <node name="muda_monitor" pkg="rostopic" type="rostopic" args="echo /muda_alert" output="screen"/>
+
+</launch>
+

@@ -1,0 +1,46 @@
+mrs_uav_managers:
+
+  estimation_manager:
+
+    # loaded state estimator plugins
+    state_estimators: [
+      "gps_garmin",
+      "gps_baro",
+    ]
+
+    initial_state_estimator: "gps_garmin" # will be used as the first state estimator
+    agl_height_estimator: "garmin_agl" # only slightly filtered height for checking min height (not used in control feedback)
+
+  uav_manager:
+
+    takeoff:
+
+      during_takeoff:
+        controller: "MpcController"
+        tracker: "LandoffTracker"
+
+      after_takeoff:
+        controller: "MpcController"
+        # controller: "Se3Controller"
+        tracker: "MpcTracker"
+
+# Limitar velocidade para plantio preciso
+mrs_uav_trackers:
+
+  mpc_tracker:
+
+    # Velocidade horizontal MUITO baixa para parar nos pontos
+    horizontal:
+      speed: 2.0           # m/s (era 3, default ~5)
+      acceleration: 1.0    # m/s² (era 1.5, default ~2)
+      jerk: 3.0            # m/s³ (era 5)
+
+    # Velocidade vertical
+    vertical:
+      speed: 1.0           # m/s (era 1.5, default ~2)
+      acceleration: 0.8    # m/s²
+
+    # Heading
+    heading:
+      speed: 0.3           # rad/s (era 0.5)
+      acceleration: 0.2    # rad/s²
