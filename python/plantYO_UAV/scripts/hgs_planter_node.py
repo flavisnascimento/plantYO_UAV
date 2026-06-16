@@ -398,10 +398,10 @@ class HGSPlanterNode:
         rospy.init_node("hgs_planter", anonymous=True)
         
         # Parâmetros do talhão - AJUSTADOS para melhor visualização
-        self.grid_size_x = rospy.get_param("~grid_size_x", 100.0)
-        self.grid_size_y = rospy.get_param("~grid_size_y", 100.0)
-        self.waypoint_spacing = rospy.get_param("~waypoint_spacing", 5.0)  # Era 2.5, agora 5m
-        self.line_spacing = rospy.get_param("~line_spacing", 5.0)      # Era 2.5, agora 5m
+        self.grid_size_x = rospy.get_param("~grid_size_x", 25.0)
+        self.grid_size_y = rospy.get_param("~grid_size_y", 25.0)
+        self.waypoint_spacing = rospy.get_param("~waypoint_spacing", 5.0)  
+        self.line_spacing = rospy.get_param("~line_spacing", 5.0)      
         self.base_x = rospy.get_param("~base_x", 50.0)  # Base no centro-inferior (50,0)
         self.base_y = rospy.get_param("~base_y", 0.0)
         

@@ -33,13 +33,15 @@ ENV/
 # ROS
 devel/
 logs/
-build/
 
 # Logs
 *.log
-logs/
 mission_logs/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Resultados gerados (experimentos dispensor_def)
+python/plantYO_UAV/dispensor_def/results/
+

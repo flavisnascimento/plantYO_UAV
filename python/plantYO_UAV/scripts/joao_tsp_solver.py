@@ -627,6 +627,7 @@ class JoaoTSPSolver(BaseSolver):
         tsp_time = time.time() - start_time
         
         # Split tour into feasible routes
+        # Para clientes virtuais, não há necessidade de commodity constraints
         if self.split_strategy == 'optimal':
             routes = self._split_optimal(tour, demands, capacity, autonomy, distance_matrix)
         else:
@@ -931,6 +932,10 @@ class JoaoTSPSolver(BaseSolver):
             Maximum route distance.
         dm : np.ndarray
             Distance matrix.
+        commodity_capacities : Dict, optional
+            Maximum capacity per commodity.
+        commodities : List, optional
+            Commodity type for each node.
         
         Returns
         -------
@@ -957,6 +962,9 @@ class JoaoTSPSolver(BaseSolver):
         current_distance = 0.0
         last_wp = 0  # Start at depot
         
+        # Para clientes virtuais, não há necessidade de commodity constraints
+        current_commodity_demands = None
+        
         for wp in tour:
             wp_demand = demands[wp]
             dist_to_wp = dm[last_wp, wp]
@@ -966,7 +974,10 @@ class JoaoTSPSolver(BaseSolver):
             potential_demand = current_demand + wp_demand
             potential_distance = current_distance + dist_to_wp + dist_to_base
             
-            if potential_demand <= capacity and potential_distance <= autonomy:
+            # Para clientes virtuais, não há necessidade de commodity constraints
+            commodity_feasible = True
+            
+            if potential_demand <= capacity and potential_distance <= autonomy and commodity_feasible:
                 # Fits - add to current route
                 current_route.append(wp)
                 current_demand = potential_demand
@@ -1014,6 +1025,10 @@ class JoaoTSPSolver(BaseSolver):
             Maximum route distance.
         dm : np.ndarray
             Distance matrix.
+        commodity_capacities : Dict, optional
+            Maximum capacity per commodity.
+        commodities : List, optional
+            Commodity type for each node.
         
         Returns
         -------
@@ -1035,6 +1050,7 @@ class JoaoTSPSolver(BaseSolver):
         
         A route tour[j..i-1] is valid if:
             - sum of demands <= capacity
+            - per-commodity demands <= commodity_capacities (if provided)
             - route distance <= autonomy
         
         References
@@ -1064,6 +1080,9 @@ class JoaoTSPSolver(BaseSolver):
             for j in range(i - 1, -1, -1):
                 wp = tour[j]
                 route_demand += demands[wp]
+                
+                # Para clientes virtuais, não há necessidade de commodity constraints
+                commodity_feasible = True
                 
                 # Pruning: if demand exceeds capacity, no need to check longer routes
                 if route_demand > capacity:

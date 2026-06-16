@@ -245,6 +245,8 @@ class GridGenerator:
                     continue
                 
                 capacity = self.config.commodity_capacity.get(plant_type)
+                if capacity == 0:
+                    continue
                 total_demand = len(wps) * self.config.seeds_per_waypoint
                 
                 # Quantos splits necessários?
@@ -339,6 +341,19 @@ class GridGenerator:
             demands.append(client.demand)
         
         return demands
+    
+    def get_commodities(self) -> List[PlantType]:
+        """
+        Retorna tipos de commodity para cada cliente virtual.
+        """
+        if not self.virtual_clients:
+            self.generate()
+        
+        commodities = [None]  # Base não tem commodity
+        for client in self.virtual_clients:
+            commodities.append(client.commodity)
+        
+        return commodities
     
     # Aliases para compatibilidade
     def get_segment_demands(self) -> List[int]:

@@ -7,8 +7,8 @@
 # -----------------------------------------------------------
 grid:
   # Dimensões do talhão em metros
-  size_x: 100.0
-  size_y: 100.0
+  size_x: 25.0
+  size_y: 25.0
   
   # Espaçamento entre waypoints (metros)
   waypoint_spacing: 4.0

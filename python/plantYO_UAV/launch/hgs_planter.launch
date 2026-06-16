@@ -5,12 +5,12 @@
     Baseado em Petris (2024) e Vidal (2022)
   -->
 
-  <!-- Parâmetros do Talhão (100x100m) -->
-  <arg name="grid_size_x" default="100.0" />
-  <arg name="grid_size_y" default="100.0" />
+  <!-- Parâmetros do Talhão (25x25m) -->
+  <arg name="grid_size_x" default="25.0" />
+  <arg name="grid_size_y" default="25.0" />
   <arg name="waypoint_spacing" default="5.0" />
   <arg name="line_spacing" default="5.0" />
-  <arg name="base_x" default="50.0" />
+  <arg name="base_x" default="12.5" />
   <arg name="base_y" default="0.0" />
 
   <!-- Parâmetros do Drone (Dispenser) -->

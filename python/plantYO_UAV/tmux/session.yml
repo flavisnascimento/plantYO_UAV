@@ -1,0 +1,24 @@
+# PlantYO - Validação no WSL (sem Gazebo)
+root: ./
+name: plantyo
+socket_name: mrs
+attach: false
+tmux_options: -f /etc/ctu-mrs/tmux.conf
+
+startup_window: planter
+
+pre_window: export UAV_NAME=uav1; source ~/plantyo_ws/devel/setup.bash
+
+windows:
+  - roscore:
+      layout: tiled
+      panes:
+        - roscore
+  - planter:
+      layout: tiled
+      panes:
+        - sleep 2; roslaunch plantyo_uav hgs_planter.launch
+  - rviz:
+      layout: tiled
+      panes:
+        - sleep 4; rviz -d $(rospack find plantyo_uav)/config/planter_rviz.rviz
