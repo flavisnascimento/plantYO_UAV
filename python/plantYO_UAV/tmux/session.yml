@@ -1,24 +1,58 @@
-# PlantYO - Validação no WSL (sem Gazebo)
+# do not modify these
 root: ./
-name: plantyo
+name: simulation
 socket_name: mrs
 attach: false
 tmux_options: -f /etc/ctu-mrs/tmux.conf
-
-startup_window: planter
-
-pre_window: export UAV_NAME=uav1; source ~/plantyo_ws/devel/setup.bash
-
+# you can modify these
+pre_window: export UAV_NAME=uav1; export RUN_TYPE=simulation; export UAV_TYPE=f550; export GAZEBO_MODEL_PATH=$(rospack find plantyo_uav)/models:$GAZEBO_MODEL_PATH
+startup_window: hgs_planter
 windows:
   - roscore:
       layout: tiled
       panes:
         - roscore
-  - planter:
+  - gazebo:
       layout: tiled
       panes:
-        - sleep 2; roslaunch plantyo_uav hgs_planter.launch
+        - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch gui:=true world_file:=$(rospack find plantyo_uav)/worlds/plantyo_farm.world
+        - waitForControl; gz camera -c gzclient_camera -f $UAV_NAME; history -s gz camera -c gzclient_camera -f $UAV_NAME
+  - status:
+      layout: tiled
+      panes:
+        - waitForHw; roslaunch mrs_uav_status status.launch
+  - spawn:
+      layout: tiled
+      panes:
+        - waitForGazebo; rosservice call /mrs_drone_spawner/spawn "1 $UAV_TYPE --pos 50 0 0.5 1.57 --enable-rangefinder"
+  - hw_api:
+      layout: tiled
+      panes:
+        - waitForTime; roslaunch mrs_uav_px4_api api.launch
+  - core:
+      layout: tiled
+      panes:
+        - waitForHw; roslaunch mrs_uav_core core.launch
+          platform_config:=`rospack find mrs_uav_gazebo_simulation`/config/mrs_uav_system/$UAV_TYPE.yaml
+          custom_config:=./config/custom_config.yaml
+          world_config:=./config/world_config.yaml
+          network_config:=./config/network_config.yaml
+  - hgs_planter:
+      layout: tiled
+      panes:
+        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=3comp solver:=DAHA grid_size_x:=75.0 grid_size_y:=75.0 base_x:=37.5
+  - takeoff:
+      layout: tiled
+      panes:
+        - waitForHw;sleep 5; roslaunch mrs_uav_autostart automatic_start.launch
+        - 'waitForControl; rosservice call /$UAV_NAME/hw_api/arming 1; sleep 2; rosservice call /$UAV_NAME/hw_api/offboard'
+  - goto:
+      layout: tiled
+      panes:
+        - 'history -s rosservice call /$UAV_NAME/control_manager/goto \"goal: \[0.0, 10.0, 1.5, 0.0\]\"'
   - rviz:
       layout: tiled
       panes:
-        - sleep 4; rviz -d $(rospack find plantyo_uav)/config/planter_rviz.rviz
+        - waitForControl; rviz -d $(rospack find plantyo_uav)/config/planter_rviz.rviz
+        - waitForControl; roslaunch mrs_rviz_plugins load_robot.launch
+        - waitForTime; waitForControl; roslaunch mrs_rviz_plugins rviz_interface.launch
