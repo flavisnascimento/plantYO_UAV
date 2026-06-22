@@ -939,7 +939,8 @@ class HGSPlanterNode:
                     "arbusto": self.capacity_arbusto,
                     "arvore": self.capacity_arvore
                 }
-            }
+            },
+            solver_name=getattr(self, '_solver_name', 'HGS')
         )
         csv_files = self.logger.save_to_csv()
         json_file = self.logger.save_to_json()

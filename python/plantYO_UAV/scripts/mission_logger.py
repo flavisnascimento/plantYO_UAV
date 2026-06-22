@@ -341,7 +341,8 @@ class MissionLogger:
         total_distance_m: float,
         total_time_s: float,
         solver_time_s: float = 0,
-        field_config: Optional[Dict] = None
+        field_config: Optional[Dict] = None,
+        solver_name: str = None
     ):
         """
         Define dados do resumo manualmente.
@@ -356,6 +357,8 @@ class MissionLogger:
             "total_time_s": total_time_s,
             "solver_time": solver_time_s,
         })
+        if solver_name:
+            self.config["solver_name"] = solver_name
         
         if field_config:
             self.config["grid_size_x"] = field_config.get("width_m", 0)
@@ -568,7 +571,7 @@ class BatteryModel:
     
     def consume_hover(self, seconds: float) -> float:
         """Consome bateria em hover por N segundos"""
-        mah = (self.consumption_hover * seconds) / 3600  # A*s -> mAh
+        mah = (self.consumption_hover * seconds) / 3600 * 1000
         return self._consume(mah, "hover", seconds)
     
     def consume_flight(self, time_or_distance: float, speed_ms: float = 2.0, is_time: bool = False) -> float:
@@ -587,12 +590,12 @@ class BatteryModel:
             distance_m = time_or_distance
             time_s = distance_m / speed_ms if speed_ms > 0 else 0
         
-        mah = (self.consumption_flight * time_s) / 3600
+        mah = (self.consumption_flight * time_s) / 3600 * 1000
         return self._consume(mah, "flight", time_s, distance_m)
     
     def consume_plant(self, seconds: float = 3.0) -> float:
         """Consome bateria durante plantio (desce, planta, sobe)"""
-        mah = (self.consumption_plant * seconds) / 3600
+        mah = (self.consumption_plant * seconds) / 3600 * 1000
         return self._consume(mah, "plant", seconds)
     
     def _consume(self, mah: float, action: str, time_s: float, distance: float = 0) -> float:

@@ -77,9 +77,9 @@ class DispensorPlanter:
         rospy.init_node = _noop_init_node
 
         if self.modo == "3comp":
-            rospy.set_param("~capacity_erva", self._cap)
-            rospy.set_param("~capacity_arbusto", self._cap)
-            rospy.set_param("~capacity_arvore", self._cap)
+            rospy.set_param("/dispensor_planter/capacity_erva", self._cap)
+            rospy.set_param("/dispensor_planter/capacity_arbusto", self._cap)
+            rospy.set_param("/dispensor_planter/capacity_arvore", self._cap)
             t0 = time.time()
             self._planter = self._make_planter()
             dur = time.time() - t0
@@ -92,18 +92,35 @@ class DispensorPlanter:
             self._run_1comp()
 
     def _make_planter(self):
-        p = HGSPlanterNode.__new__(HGSPlanterNode)
-        p._solver_name = self._solver_name
-        p.__init__()
+        # forca as capacidades da campanha interceptando get_param
+        caps = {
+            "~capacity_erva": rospy.get_param("/dispensor_planter/capacity_erva", self._cap),
+            "~capacity_arbusto": rospy.get_param("/dispensor_planter/capacity_arbusto", self._cap),
+            "~capacity_arvore": rospy.get_param("/dispensor_planter/capacity_arvore", self._cap),
+        }
+        rospy.loginfo(f"[MAKE_PLANTER] Capacidades: E={caps['~capacity_erva']} "
+                      f"Arb={caps['~capacity_arbusto']} Arv={caps['~capacity_arvore']}")
+        _orig_get_param = rospy.get_param
+        def _patched_get_param(name, default=None):
+            if name in caps:
+                return caps[name]
+            return _orig_get_param(name, default)
+        rospy.get_param = _patched_get_param
+        try:
+            p = HGSPlanterNode.__new__(HGSPlanterNode)
+            p._solver_name = self._solver_name
+            p.__init__()
+        finally:
+            rospy.get_param = _orig_get_param
         return p
 
     def _run_1comp(self):
         campanhas = [("erva", self._cap,0,0), ("arvore",0,0,self._cap), ("arbusto",0,self._cap,0)]
         tempo_total = 0.0; dist_total = 0.0
         for nome, ce, cab, car in campanhas:
-            rospy.set_param("~capacity_erva", ce)
-            rospy.set_param("~capacity_arbusto", cab)
-            rospy.set_param("~capacity_arvore", car)
+            rospy.set_param("/dispensor_planter/capacity_erva", ce)
+            rospy.set_param("/dispensor_planter/capacity_arbusto", cab)
+            rospy.set_param("/dispensor_planter/capacity_arvore", car)
             rospy.loginfo("="*60)
             rospy.loginfo(f"[CAMPANHA] {nome.upper()} | SOLVER {self._solver_name}")
             rospy.loginfo("="*60)
@@ -126,3 +143,27 @@ if __name__ == "__main__":
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
+
+
+# ===== FIX 1comp: get_effective_capacity ignora guildas com capacidade 0 =====
+from grid_generator import GridGenerator as _GG, PlantType as _PT
+
+def _effective_capacity_1comp(self):
+    pattern_counts = {pt: 0 for pt in _PT}
+    for pt in self.PLANT_PATTERN:
+        pattern_counts[pt] += 1
+    cycles = []
+    for pt in _PT:
+        if pattern_counts[pt] > 0:
+            cap = self.config.commodity_capacity.get(pt)
+            if cap <= 0:
+                continue  # guilda inativa nesta campanha: ignora
+            seeds_per_cycle = pattern_counts[pt] * self.config.seeds_per_waypoint
+            cycles.append(cap // seeds_per_cycle)
+    if not cycles:
+        return 0
+    min_cycles = min(cycles)
+    pattern_len = len(self.PLANT_PATTERN)
+    return int(min_cycles * pattern_len * self.config.seeds_per_waypoint)
+
+_GG.get_effective_capacity = _effective_capacity_1comp

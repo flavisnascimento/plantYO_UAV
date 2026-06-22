@@ -224,6 +224,10 @@ class GridGenerator:
                 pattern_idx = pos_idx % len(self.PLANT_PATTERN)
                 plant_type = self.PLANT_PATTERN[pattern_idx]
                 
+                # 1comp: se a guilda esta inativa (capacidade 0), nao cria o waypoint
+                if self.config.commodity_capacity.get(plant_type) <= 0:
+                    continue
+                
                 waypoint = Waypoint(
                     id=waypoint_id,
                     x=x,
@@ -462,6 +466,9 @@ class GridGenerator:
         for pt in PlantType:
             if pattern_counts[pt] > 0:
                 capacity = self.config.commodity_capacity.get(pt)
+                if capacity <= 0:
+                    # guilda inativa (1comp): ignora no calculo
+                    continue
                 seeds_per_cycle = pattern_counts[pt] * self.config.seeds_per_waypoint
                 cycles_per_type[pt] = capacity // seeds_per_cycle
             else:
