@@ -1,82 +1,58 @@
-# Blob Detector (UAV Planter)
+# plantYO_UAV
 
-This package contains computer vision and control logic for a UAV planter system, designed to run within the MRS UAV System simulation environment.
+Commodity-Constrained Split Delivery Vehicle Routing Problem (C-SDVRP) for
+aerial seeding in Cerrado restoration using UAVs.
 
-## 1. Requirements
+Companion code for the paper "Optimizing UAV Operations under Capacity and
+Distance Constraints: A Comparison of Routing Heuristics for Cerrado
+Restoration" (accepted at ICUAS 2026). Developed at LARIS / UFSCar.
 
-*   **OS:** Ubuntu 20.04 LTS
-*   **ROS Version:** Noetic Ninjemys
-*   **Core Dependency:** [MRS UAV System](https://github.com/ctu-mrs/mrs_uav_system) (Make sure the MRS simulation environment is installed and working).
+## Overview
 
-## 2. Installation
+The drone plants three seed commodities (grass, shrub, tree) over a field,
+under payload and flight-range constraints, returning to a base to reload.
+The routing is modeled as a C-SDVRP and solved by several algorithms, then
+validated in Gazebo through the MRS UAV System.
 
-These instructions assume you already have a ROS workspace created. If not, replace `catkin_ws` with your workspace name (e.g., `rma2025_ws`).
+Implemented solvers: D-AHA (Discrete Artificial Hummingbird Algorithm),
+HGS (Hybrid Genetic Search), Nearest Neighbor, and LKH-Split.
 
-### Step 1: Clone the repository
-Navigate to the `src` folder of your catkin workspace and clone this repository.
+## Structure
 
-```bash
-cd ~/catkin_ws/src
-git clone <PASTE_YOUR_GIT_REPO_URL_HERE>
-```
+    python/plantYO_UAV/
+      scripts/    routing solvers and ROS nodes
+      models/     Gazebo models (colored seeds, terrain, trees)
+      worlds/     simulation world
+      launch/     ROS launch files
+      tmux/       session scripts to run the simulation
+      config/     RViz and parameter configs
 
-### Step 2: Install dependencies
-It is good practice to ensure all dependencies defined in `package.xml` are installed.
+## Requirements
 
-```bash
-cd ~/catkin_ws
-rosdep install --from-paths src --ignore-src -r -y
-```
+- Ubuntu 20.04 / ROS Noetic
+- MRS UAV System (https://github.com/ctu-mrs/mrs_uav_system)
+- Python 3.8, numpy, hygese
 
-### Step 3: Build the package
-Compile the workspace to register the new package.
+## Installation
 
-```bash
-cd ~/catkin_ws
-catkin build
-# OR if you use standard catkin_make:
-# catkin_make
-```
+    cd ~/catkin_ws/src
+    git clone -b master https://github.com/flavisnascimento/plantYO_UAV.git
+    cd ~/catkin_ws
+    catkin build
+    source ~/catkin_ws/devel/setup.bash
+    pip3 install hygese
 
-### Step 4: Source the workspace
-Don't forget to source your workspace so ROS can find the `plantYO_UAV` package and its launch files.
+## Running
 
-```bash
-source ~/catkin_ws/devel/setup.bash
-```
-*(Tip: Add this line to your `~/.bashrc` if you haven't already)*
+    roscd plantyo_uav/tmux
+    ./start.sh
+    ./kill.sh
 
-## 3. Usage
+The solver and mission mode are set in tmux/session.yml:
 
-This package uses `tmuxinator` (via a shell script wrapper) to launch the simulation, the drone core, the computer vision node, and Rviz simultaneously.
+- modo: 1comp (one commodity per campaign) or 3comp (all three together)
+- solver: HGS, DAHA, or NN
 
-### Start the simulation
-Navigate to the package folder and run the start script:
+## License
 
-```bash
-roscd plantYO_UAV/tmux
-./start.sh
-```
-
-### Stop the simulation
-To kill all sessions and close the windows safely:
-
-```bash
-./kill.sh
-```
-
-## 4. Configuration
-
-*   **Vision Logic:** The main detection logic is located in `scripts/hgs_planter_node.py`.
-*   **Session Layout:** The tmux window layout is defined in `tmux/session.yml`.
-*   **Rviz:** Visualization config is in `config/planter_rviz.rviz`.
-
----
-
-### Troubleshooting
-
-**"Package not found" error:**
-If `start.sh` fails claiming it cannot find the package paths:
-1. Ensure you have run `catkin build`.
-2. Ensure you have sourced your workspace (`source ~/catkin_ws/devel/setup.bash`).
-3. Ensure the folder name in `src` matches the package name defined in `package.xml`.
+See python/plantYO_UAV/LICENSE.

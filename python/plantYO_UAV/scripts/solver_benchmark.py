@@ -853,11 +853,11 @@ class AHASolverBenchmark(BaseSolver):
     
     @property
     def name(self) -> str:
-        return "AHA-CVRP"
+        return "D-AHA"
     
     @property
     def reference(self) -> str:
-        return "Zhao, W. et al. (2022). Artificial hummingbird algorithm: A new bio-inspired optimizer. Expert Systems with Applications."
+        return "Zhao, W., Wang, L., & Mirjalili, S. (2022). Artificial hummingbird algorithm: A new bio-inspired optimizer with its engineering applications. Computer Methods in Applied Mechanics and Engineering, 388, 114194. https://doi.org/10.1016/j.cma.2021.114194"
     
     def solve(self,
               distance_matrix: np.ndarray,
@@ -985,9 +985,6 @@ class AHASolverBenchmark(BaseSolver):
                     new_perm = list(range(1, n + 1))
                     random.shuffle(new_perm)
                     population[idx] = new_perm
-                    new_perm = list(range(1, n + 1))
-                    random.shuffle(new_perm)
-                    population[idx] = new_perm
             
             # Atualiza população com operadores AHA
             new_population = []
@@ -1098,17 +1095,6 @@ class AHASolverBenchmark(BaseSolver):
             j = random.randint(i + 1, len(new_hb) - 1)
             new_hb[i:j+1] = reversed(new_hb[i:j+1])
         return new_hb
-    
-    def _two_opt(self, solution: List[int]) -> List[int]:
-        """Busca local 2-opt - versão completa (para polimento intensivo)"""
-        import random
-        if len(solution) < 4:
-            return solution
-        new_sol = solution.copy()
-        i = random.randint(0, len(solution) - 2)
-        j = random.randint(i + 1, len(solution) - 1)
-        new_sol[i:j+1] = reversed(new_sol[i:j+1])
-        return new_sol
     
     def _two_opt_light(self, solution: List[int]) -> List[int]:
         """Busca local 2-opt leve - versão rápida para uso nos operadores"""
