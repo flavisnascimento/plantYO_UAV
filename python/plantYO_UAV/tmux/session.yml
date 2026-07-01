@@ -40,7 +40,7 @@ windows:
   - hgs_planter:
       layout: tiled
       panes:
-        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=1comp solver:=NN grid_size_x:=75.0 grid_size_y:=75.0 base_x:=37.5
+        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=3comp solver:=NN grid_size_x:=100.0 grid_size_y:=100.0 base_x:=50.0
   - takeoff:
       layout: tiled
       panes:

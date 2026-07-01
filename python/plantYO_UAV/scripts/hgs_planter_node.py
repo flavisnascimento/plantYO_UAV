@@ -409,16 +409,16 @@ class HGSPlanterNode:
         self.capacity_erva = rospy.get_param("~capacity_erva", 100)
         self.capacity_arbusto = rospy.get_param("~capacity_arbusto", 100)
         self.capacity_arvore = rospy.get_param("~capacity_arvore", 100)
-        self.drone_autonomy = rospy.get_param("~drone_autonomy", 2250.0)
+        self.drone_autonomy = rospy.get_param("~drone_autonomy", 600.0)
         self.reserve_percent = rospy.get_param("~reserve_percent", 0.10)
         self.seeds_per_waypoint = rospy.get_param("~seeds_per_waypoint", 15)
         
         # Parâmetros de bateria (valores AUMENTADOS para simulação visível)
         # Com estes valores, cada 100m de voo consome ~5% de bateria
-        self.battery_capacity_mah = rospy.get_param("~battery_capacity_mah", 1000)  # Bateria menor
-        self.battery_consumption_hover = rospy.get_param("~battery_consumption_hover", 500.0)  # 500A simulado
-        self.battery_consumption_flight = rospy.get_param("~battery_consumption_flight", 1000.0)  # 1000A simulado
-        self.battery_consumption_plant = rospy.get_param("~battery_consumption_plant", 600.0)  # 600A simulado
+        self.battery_capacity_mah = rospy.get_param("~battery_capacity_mah", 5000)
+        self.battery_consumption_hover = rospy.get_param("~battery_consumption_hover", 20.0)
+        self.battery_consumption_flight = rospy.get_param("~battery_consumption_flight", 25.0)
+        self.battery_consumption_plant = rospy.get_param("~battery_consumption_plant", 20.0)
         self.battery_reserve = rospy.get_param("~battery_reserve", 20.0)
         
         # Parâmetros do solver
@@ -819,7 +819,7 @@ class HGSPlanterNode:
                     self.planted_coords[coord_key] = wp_matrix_id  # Registra coordenada física
                     
                     # Consome bateria pelo plantio (~3s hover + dispenser)
-                    self.battery.consume_plant(3.0)
+                    self.battery.consume_plant(7.0)
                     self.battery_pub.publish(self.battery.get_percent())
                     self.stats.set_battery(self.battery.get_percent())
                     
@@ -1026,7 +1026,10 @@ class HGSPlanterNode:
         rospy.sleep(0.2)
         
         # 3) PLANTA (spawna no Gazebo)
-        self.spawn_plant(f"plant_{plant_id}", x, y, plant_type)
+        if not hasattr(self, "_plant_counter"):
+            self._plant_counter = 0
+        self._plant_counter += 1
+        self.spawn_plant(f"plant_{plant_type}_{self._plant_counter}", x, y, plant_type)
         
         # 4) SOBE de volta para cruzeiro
         self._change_altitude(CRUISING_ALT)
