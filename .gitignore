@@ -45,3 +45,5 @@ Thumbs.db
 # Resultados gerados (experimentos dispensor_def)
 python/plantYO_UAV/dispensor_def/results/
 
+*.bak
+*.bak*

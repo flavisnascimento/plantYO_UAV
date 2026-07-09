@@ -926,6 +926,12 @@ class AHASolverBenchmark(BaseSolver):
         best_solution = None  # Melhor flor descoberta (solução ótima conhecida)
         best_fitness = float('inf')  # Qualidade da melhor flor
 
+        # Visit table (Zhao 2022): VT[i][j] = niveis de nao-visita do beija-flor i a fonte j
+        # Mecanismo de memoria que combate convergencia prematura
+        visit_table = [[0.0] * self.population_size for _ in range(self.population_size)]
+        for i in range(self.population_size):
+            visit_table[i][i] = float('-inf')  # nao se visita
+
         # Controle de convergência e diversificação
         iteration = 0
         max_iter = self.max_iterations if self.max_iterations else float('inf')
@@ -997,18 +1003,46 @@ class AHASolverBenchmark(BaseSolver):
                 
                 r = random.random()
                 
+                # Escolha do target via visit table (Zhao 2022) - so afeta o guided
+                j_star = self._select_target_via_vt(i, visit_table, fitness_values)
+                target = population[j_star] if j_star is not None else best_solution
+                
                 if r < 0.33:
-                    # Guided foraging
-                    new_hb = self._guided_foraging(hummingbird, best_solution, iteration, elapsed_ratio)
+                    # Guided foraging (agora usa target da VT em vez de best global)
+                    new_hb = self._guided_foraging(hummingbird, target, iteration, elapsed_ratio)
+                    operator_used = "guided"
                 elif r < 0.66:
                     # Territorial foraging
                     new_hb = self._territorial_foraging(hummingbird)
+                    operator_used = "territorial"
                 else:
                     # Migration foraging
                     new_hb = self._migration_foraging(hummingbird)
+                    operator_used = "migration"
                 
                 # Avalia nova solução
                 _, new_fitness = self._evaluate(new_hb, demands, capacity, autonomy, distance_matrix, commodity_capacities, commodities)
+                
+                # Atualiza visit table (Zhao 2022) conforme o operador aplicado
+                if operator_used == "guided" and j_star is not None:
+                    # Guided: zera a fonte visitada se melhorou, senao incrementa
+                    if new_fitness < fitness_values[i]:
+                        visit_table[i][j_star] = 0.0
+                    else:
+                        visit_table[i][j_star] += 1.0
+                    # incrementa todas as outras fontes na linha i (nao visitadas)
+                    for k in range(self.population_size):
+                        if k != j_star and k != i:
+                            visit_table[i][k] += 1.0
+                elif operator_used == "territorial":
+                    # Territorial: nao usou fonte especifica, incrementa toda a linha
+                    for k in range(self.population_size):
+                        if k != i:
+                            visit_table[i][k] += 1.0
+                elif operator_used == "migration":
+                    # Migration: reseta a linha do beija-flor migrado (fresh start)
+                    for k in range(self.population_size):
+                        visit_table[i][k] = float("-inf") if k == i else 0.0
                 
                 # Aceita se melhor
                 if new_fitness < fitness_values[i]:
@@ -1024,6 +1058,14 @@ class AHASolverBenchmark(BaseSolver):
         # Gera rotas finais usando Split Ótimo
         if best_solution:
             routes, total_distance = self._evaluate(best_solution, demands, capacity, autonomy, distance_matrix, commodity_capacities, commodities)
+            
+            # Pos-processamento: busca local inter-rota (Vidal 2022, granular k=20)
+            if routes and len(routes) >= 2:
+                routes = self._granular_refinement(
+                    routes, demands, capacity, autonomy, distance_matrix,
+                    k_neighbors=20, max_time=2.0
+                )
+                total_distance = OptimalSplit._calculate_cost(routes, distance_matrix)
         else:
             routes = []
             total_distance = 0.0
@@ -1218,6 +1260,203 @@ class AHASolverBenchmark(BaseSolver):
                         break
 
         return best
+
+    # ================================================================
+    # BUSCA LOCAL INTER-ROTA (Vidal 2022, granular neighborhood k=20)
+    # Aplicada como pos-processamento nas rotas finais do D-AHA.
+    # ================================================================
+
+    def _build_neighbor_list(self, routes, dm, k):
+        """Pre-computa lista dos k vizinhos mais proximos de cada cliente."""
+        all_clients = [c for r in routes for c in r]
+        if not all_clients:
+            return {}
+        neighbors = {}
+        for c in all_clients:
+            others = [(dm[c, other], other) for other in all_clients if other != c]
+            others.sort()
+            neighbors[c] = [other for _, other in others[:k]]
+        return neighbors
+
+    def _swap_inter(self, routes, demands, capacity, autonomy, dm, neighbors, max_time):
+        """SWAP inter-rota: troca cliente X (rota A) com cliente Y (rota B)."""
+        import time as _time
+        start = _time.time()
+        improved_any = False
+
+        def route_dist(route):
+            if not route:
+                return 0.0
+            d = dm[0, route[0]]
+            for i in range(len(route) - 1):
+                d += dm[route[i], route[i+1]]
+            d += dm[route[-1], 0]
+            return d
+
+        def route_demand(route):
+            return sum(demands[c] for c in route)
+
+        client_pos = {c: (r_idx, pos)
+                      for r_idx, route in enumerate(routes)
+                      for pos, c in enumerate(route)}
+
+        improved = True
+        while improved:
+            improved = False
+            if _time.time() - start > max_time:
+                break
+            for x, (a_idx, x_pos) in list(client_pos.items()):
+                if _time.time() - start > max_time:
+                    break
+                route_a = routes[a_idx]
+                for y in neighbors.get(x, []):
+                    if y == x:
+                        continue
+                    pos_y = client_pos.get(y)
+                    if pos_y is None:
+                        continue
+                    b_idx, y_pos = pos_y
+                    if b_idx == a_idx:
+                        continue
+                    route_b = routes[b_idx]
+                    new_a = list(route_a); new_a[x_pos] = y
+                    new_b = list(route_b); new_b[y_pos] = x
+                    if route_demand(new_a) > capacity or route_demand(new_b) > capacity:
+                        continue
+                    da = route_dist(new_a); db = route_dist(new_b)
+                    if da > autonomy or db > autonomy:
+                        continue
+                    if da + db < route_dist(route_a) + route_dist(route_b) - 1e-6:
+                        routes[a_idx] = new_a
+                        routes[b_idx] = new_b
+                        client_pos[x] = (b_idx, y_pos)
+                        client_pos[y] = (a_idx, x_pos)
+                        improved = True
+                        improved_any = True
+                        break
+                if improved:
+                    break
+        return routes, improved_any
+
+    def _or_opt_inter(self, routes, demands, capacity, autonomy, dm, neighbors, max_time):
+        """Or-opt inter-rota: move cliente X (rota A) para apos vizinho Y (rota B)."""
+        import time as _time
+        start = _time.time()
+        improved_any = False
+
+        def route_dist(route):
+            if not route:
+                return 0.0
+            d = dm[0, route[0]]
+            for i in range(len(route) - 1):
+                d += dm[route[i], route[i+1]]
+            d += dm[route[-1], 0]
+            return d
+
+        def route_demand(route):
+            return sum(demands[c] for c in route)
+
+        client_pos = {c: (r_idx, pos)
+                      for r_idx, route in enumerate(routes)
+                      for pos, c in enumerate(route)}
+
+        improved = True
+        while improved:
+            improved = False
+            if _time.time() - start > max_time:
+                break
+            for x, (a_idx, x_pos) in list(client_pos.items()):
+                if _time.time() - start > max_time:
+                    break
+                route_a = routes[a_idx]
+                if len(route_a) <= 1:
+                    continue
+                for y in neighbors.get(x, []):
+                    if y == x:
+                        continue
+                    pos_y = client_pos.get(y)
+                    if pos_y is None:
+                        continue
+                    b_idx, y_pos = pos_y
+                    if b_idx == a_idx:
+                        continue
+                    route_b = routes[b_idx]
+                    new_a = list(route_a); new_a.pop(x_pos)
+                    new_b = list(route_b); new_b.insert(y_pos + 1, x)
+                    if route_demand(new_b) > capacity:
+                        continue
+                    da = route_dist(new_a); db = route_dist(new_b)
+                    if db > autonomy:
+                        continue
+                    if da + db < route_dist(route_a) + route_dist(route_b) - 1e-6:
+                        routes[a_idx] = new_a
+                        routes[b_idx] = new_b
+                        client_pos = {c: (r_idx, pos)
+                                      for r_idx, route in enumerate(routes)
+                                      for pos, c in enumerate(route)}
+                        improved = True
+                        improved_any = True
+                        break
+                if improved:
+                    break
+        return routes, improved_any
+
+    # ----------------------------------------------------------------
+    # Helper para o _guided_foraging: escolhe fonte-alvo via visit table
+    # (Zhao 2022) - combate convergencia prematura da populacao
+    # ----------------------------------------------------------------
+    def _select_target_via_vt(self, i, visit_table, fitness_values):
+        """
+        Escolhe fonte-alvo do beija-flor i usando a visit table (Zhao 2022).
+        
+        Regra do Zhao:
+          1) Encontrar as fontes com o maior 'visit level' na linha i (as
+             mais "esquecidas" pelo beija-flor i).
+          2) Entre as empatadas, escolher a de MELHOR fitness (menor valor).
+        
+        Ajuda o _guided_foraging a diversificar alvos: em vez de todos
+        os beija-flores irem para a mesma best_solution global, cada um
+        escolhe um alvo diferente conforme sua propria memoria de visitacao.
+        
+        Retorna o indice j* da fonte-alvo (ou None se nao houver candidatos).
+        """
+        linha = visit_table[i]
+        # maior visit level (a diagonal esta em -inf, entao nunca vence)
+        max_vl = max(linha)
+        # candidatos: fontes com maior visit level (excluindo o proprio i)
+        candidatos = [j for j, vl in enumerate(linha) if vl == max_vl and j != i]
+        if not candidatos:
+            return None
+        # desempate: melhor fitness (menor valor)
+        return min(candidatos, key=lambda j: fitness_values[j])
+
+    def _granular_refinement(self, routes, demands, capacity, autonomy, dm,
+                             k_neighbors=20, max_time=2.0):
+        """
+        Refinamento granular: aplica SWAP e Or-opt inter-rota em loop
+        ate nao melhorar ou atingir max_time. Poda por vizinhanca (Vidal 2022).
+        """
+        import time as _time
+        start = _time.time()
+        if len(routes) < 2:
+            return routes
+        neighbors = self._build_neighbor_list(routes, dm, k_neighbors)
+        if not neighbors:
+            return routes
+        for _iter in range(10):
+            if _time.time() - start > max_time:
+                break
+            remaining = max_time - (_time.time() - start)
+            if remaining <= 0.1:
+                break
+            t_each = remaining / 2.0
+            routes, swap_ok = self._swap_inter(routes, demands, capacity, autonomy, dm, neighbors, t_each)
+            if _time.time() - start > max_time:
+                break
+            routes, orop_ok = self._or_opt_inter(routes, demands, capacity, autonomy, dm, neighbors, t_each)
+            if not (swap_ok or orop_ok):
+                break
+        return routes
 
 
 # =============================================================================

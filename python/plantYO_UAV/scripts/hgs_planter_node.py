@@ -420,6 +420,8 @@ class HGSPlanterNode:
         self.battery_consumption_flight = rospy.get_param("~battery_consumption_flight", 25.0)
         self.battery_consumption_plant = rospy.get_param("~battery_consumption_plant", 20.0)
         self.battery_reserve = rospy.get_param("~battery_reserve", 20.0)
+        # Tempo de recarga na base (swap manual de bateria/sementes, ~1min30)
+        self.recharge_time = rospy.get_param("~recharge_time", 90.0)
         
         # Parâmetros do solver
         self.solver_time_limit = rospy.get_param("~solver_time_limit", 10.0)
