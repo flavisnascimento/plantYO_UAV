@@ -1096,7 +1096,7 @@ class AHASolverBenchmark(BaseSolver):
         else:
             return OptimalSplit.split_greedy(sequence, demands, capacity, autonomy, dm, commodity_capacities, commodities)
     
-    def _guided_foraging(self, hummingbird: List[int], best: List[int], iteration: int, 
+    def _guided_foraging(self, hummingbird: List[int], target: List[int], iteration: int, 
                           elapsed_ratio: float = 0.5) -> List[int]:
         """Operador de forrageamento guiado - Busca local leve integrada"""
         import random
@@ -1106,10 +1106,11 @@ class AHASolverBenchmark(BaseSolver):
         decay = 1 - elapsed_ratio
         
         # Crossover parcial com melhor solução (aprendizado social)
-        if random.random() < 0.5 * decay and best:
+        if random.random() < 0.5 * decay and target:
             cut = random.randint(1, len(hummingbird) - 1)
-            segment = best[:cut]
-            remaining = [x for x in hummingbird if x not in segment]
+            segment = target[:cut]
+            segment_set = set(segment)  # O(1) lookup em vez de O(n)
+            remaining = [x for x in hummingbird if x not in segment_set]
             new_hb = segment + remaining
         
         # Busca local leve: 2-opt simples (não intensivo)

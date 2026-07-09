@@ -900,11 +900,11 @@ class HGSPlanterNode:
             
             rospy.loginfo(f"[ROTA {route_idx+1}] ✓ Completa em {route_time:.1f}s (volta base: {base_time:.1f}s)")
             rospy.loginfo(f"[BATERIA] Antes recarga: {battery_before_recharge:.1f}%")
-            rospy.loginfo(f"[BASE] Recarregando (3s)...")
+            rospy.loginfo(f"[BASE] Recarregando (swap manual, {self.recharge_time:.0f}s)...")
             
             # Simula recarga (bateria cheia novamente)
             self.battery.recharge()
-            rospy.sleep(3.0)
+            rospy.sleep(self.recharge_time)
             rospy.loginfo(f"[BATERIA] Após recarga: {self.battery.get_percent():.1f}%")
         
         # Estatísticas de duplicatas
