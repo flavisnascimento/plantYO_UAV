@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from hgs_planter_node import HGSPlanterNode
 from grid_generator import GridGenerator, GridConfig, CommodityCapacity
 from hgs_solver import HGSSolver, DroneConfig
-from solver_benchmark import AHASolverBenchmark, NearestNeighborSolver
+from solver_benchmark import AHASolverBenchmark, NearestNeighborSolver, TSPGreedySolver, TSP2OptSolver
 
 
 # guarda o init_node real
@@ -41,13 +41,17 @@ def _generate_multi_solver(self):
     generator = GridGenerator(config)
     generator.generate()
     effective_capacity = generator.get_effective_capacity()
-    dm = generator.get_individual_distance_matrix()
-    demands = generator.get_individual_demands()
+    dm = generator.get_distance_matrix()  # PETRIS
+    demands = generator.get_demands()  # PETRIS
 
     if solver_name == "NN":
         solver = NearestNeighborSolver()
     elif solver_name in ("DAHA", "D-AHA", "AHA"):
         solver = AHASolverBenchmark()
+    elif solver_name in ("LKH-GREEDY", "LKHGREEDY", "LKHG"):
+        solver = TSPGreedySolver()
+    elif solver_name in ("LKH-2OPT", "LKH2OPT", "LKH"):
+        solver = TSP2OptSolver()
     else:
         return _orig_generate(self)
 

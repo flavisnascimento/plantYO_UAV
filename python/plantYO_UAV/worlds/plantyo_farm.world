@@ -79,21 +79,21 @@
     <include><uri>model://pine_tree</uri><name>tree_s3</name><pose>50 -8 0 0 0 0</pose></include>
     <include><uri>model://oak_tree</uri><name>tree_s4</name><pose>70 -8 0 0 0 1.2</pose></include>
     <include><uri>model://pine_tree</uri><name>tree_s5</name><pose>90 -8 0 0 0 0</pose></include>
-    <include><uri>model://oak_tree</uri><name>tree_n1</name><pose>10 108 0 0 0 0</pose></include>
-    <include><uri>model://pine_tree</uri><name>tree_n2</name><pose>30 108 0 0 0 0</pose></include>
-    <include><uri>model://oak_tree</uri><name>tree_n3</name><pose>50 108 0 0 0 0.8</pose></include>
-    <include><uri>model://pine_tree</uri><name>tree_n4</name><pose>70 108 0 0 0 0</pose></include>
-    <include><uri>model://oak_tree</uri><name>tree_n5</name><pose>90 108 0 0 0 0</pose></include>
+    <include><uri>model://oak_tree</uri><name>tree_n1</name><pose>10 170 0 0 0 0</pose></include>
+    <include><uri>model://pine_tree</uri><name>tree_n2</name><pose>30 170 0 0 0 0</pose></include>
+    <include><uri>model://oak_tree</uri><name>tree_n3</name><pose>50 170 0 0 0 0.8</pose></include>
+    <include><uri>model://pine_tree</uri><name>tree_n4</name><pose>70 170 0 0 0 0</pose></include>
+    <include><uri>model://oak_tree</uri><name>tree_n5</name><pose>90 170 0 0 0 0</pose></include>
     <include><uri>model://pine_tree</uri><name>tree_w1</name><pose>-8 10 0 0 0 0</pose></include>
     <include><uri>model://oak_tree</uri><name>tree_w2</name><pose>-8 30 0 0 0 0</pose></include>
     <include><uri>model://pine_tree</uri><name>tree_w3</name><pose>-8 50 0 0 0 0</pose></include>
     <include><uri>model://oak_tree</uri><name>tree_w4</name><pose>-8 70 0 0 0 1.5</pose></include>
     <include><uri>model://pine_tree</uri><name>tree_w5</name><pose>-8 90 0 0 0 0</pose></include>
-    <include><uri>model://oak_tree</uri><name>tree_e1</name><pose>108 10 0 0 0 0</pose></include>
-    <include><uri>model://pine_tree</uri><name>tree_e2</name><pose>108 30 0 0 0 0</pose></include>
-    <include><uri>model://oak_tree</uri><name>tree_e3</name><pose>108 50 0 0 0 0.3</pose></include>
-    <include><uri>model://pine_tree</uri><name>tree_e4</name><pose>108 70 0 0 0 0</pose></include>
-    <include><uri>model://oak_tree</uri><name>tree_e5</name><pose>108 90 0 0 0 0</pose></include>
+    <include><uri>model://oak_tree</uri><name>tree_e1</name><pose>170 10 0 0 0 0</pose></include>
+    <include><uri>model://pine_tree</uri><name>tree_e2</name><pose>170 30 0 0 0 0</pose></include>
+    <include><uri>model://oak_tree</uri><name>tree_e3</name><pose>170 50 0 0 0 0.3</pose></include>
+    <include><uri>model://pine_tree</uri><name>tree_e4</name><pose>170 70 0 0 0 0</pose></include>
+    <include><uri>model://oak_tree</uri><name>tree_e5</name><pose>170 90 0 0 0 0</pose></include>
 
     <gui>
       <camera name="camera"><pose>-60 -100 30 0 0.4 0.89</pose></camera>

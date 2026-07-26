@@ -1,49 +1,62 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+.pytest_cache/
+.mypy_cache/
 
-# Virtual environments
+# Virtual envs
 venv/
-ENV/
+env/
+.venv/
 
 # IDE
 .vscode/
 .idea/
 *.swp
-*.swo
+*~
 
 # ROS
 devel/
-logs/
+install/
+CATKIN_IGNORE
+.catkin_workspace
 
 # Logs
 *.log
+logs/
 mission_logs/
+plantyo_logs/
+plantyo_benchmarks/
+
+# Backups
+*.bak
+*.bak_*
+*.bak[0-9]
+*.orig
+*.tmp
+
+# Resultados
+python/plantYO_UAV/dispensor_def/results/
+results/
+*.json.results
+
+# Gazebo
+*.bag
+*.world.bak
+
+# LaTeX
+*.aux
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Resultados gerados (experimentos dispensor_def)
-python/plantYO_UAV/dispensor_def/results/
-
-*.bak
-*.bak*

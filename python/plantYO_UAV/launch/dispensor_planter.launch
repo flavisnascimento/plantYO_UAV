@@ -9,7 +9,7 @@
   <arg name="base_y" default="0.0" />
   <arg name="cap_por_guilda" default="100" />
   <arg name="seeds_per_waypoint" default="15" />
-  <arg name="drone_autonomy" default="2250.0" />
+  <arg name="drone_autonomy" default="1500.0" />
   <arg name="reserve_percent" default="0.10" />
   <arg name="solver_time_limit" default="30.0" />
 

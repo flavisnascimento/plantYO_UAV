@@ -27,8 +27,8 @@ drone:
   dispenser_capacity: 300
   
   # Autonomia útil em metros
-  # (já considerando 10% de reserva: 2500m * 0.9 = 2250m)
-  autonomy: 2250.0
+  # (X650 quad com payload, metodologia ICUAS: 0.9 bateria x 0.9 imprevistos)
+  autonomy: 1500.0
   
   # Porcentagem de reserva de autonomia
   reserve_percent: 0.10

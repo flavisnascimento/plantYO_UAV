@@ -15,7 +15,7 @@ windows:
   - gazebo:
       layout: tiled
       panes:
-        - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch gui:=true world_file:=$(rospack find plantyo_uav)/worlds/plantyo_farm.world
+        - waitForRos; roslaunch mrs_uav_gazebo_simulation simulation.launch gui:=false world_file:=$(rospack find plantyo_uav)/worlds/plantyo_farm.world
         - waitForControl; gz camera -c gzclient_camera -f $UAV_NAME; history -s gz camera -c gzclient_camera -f $UAV_NAME
   - status:
       layout: tiled
@@ -40,7 +40,7 @@ windows:
   - hgs_planter:
       layout: tiled
       panes:
-        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=3comp solver:=DAHA grid_size_x:=100.0 grid_size_y:=100.0 base_x:=50.0
+        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=3comp solver:=NN grid_size_x:=75.0 grid_size_y:=75.0 base_x:=37.5 mission_name:=NN_3comp_grid75_20260726_191432
   - takeoff:
       layout: tiled
       panes:

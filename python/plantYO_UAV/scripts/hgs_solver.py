@@ -32,8 +32,8 @@ except ImportError:
 class DroneConfig:
     """Configuração do drone"""
     dispenser_capacity: int = 300  # Sementes totais (100 cada tipo)
-    autonomy_meters: float = 2250.0  # Metros úteis de voo
-    reserve_percent: float = 0.10  # Reserva para retorno (10%)
+    autonomy_meters: float = 1500.0  # Metros úteis de voo
+    reserve_percent: float = 0.0  # Reserva embutida no autonomy_meters (ICUAS: 0.9 bateria x 0.9 imprevistos)
     
     @property
     def effective_autonomy(self) -> float:
@@ -533,8 +533,8 @@ def main():
     # Configurar drone
     drone_config = DroneConfig(
         dispenser_capacity=300,  # 100 sementes de cada tipo
-        autonomy_meters=2250.0,  # Autonomia útil
-        reserve_percent=0.10
+        autonomy_meters=1500.0,  # Autonomia útil
+        reserve_percent=0.0
     )
     
     print(f"\nConfiguração do drone:")

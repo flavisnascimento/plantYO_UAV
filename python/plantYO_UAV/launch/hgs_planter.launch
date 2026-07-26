@@ -18,7 +18,7 @@
   <arg name="capacity_arbusto" default="100" />
   <arg name="capacity_arvore" default="100" />
   <arg name="seeds_per_waypoint" default="15" />
-  <arg name="drone_autonomy" default="2250.0" />
+  <arg name="drone_autonomy" default="1500.0" />
   <arg name="reserve_percent" default="0.10" />
 
   <!-- Parâmetros do Solver -->

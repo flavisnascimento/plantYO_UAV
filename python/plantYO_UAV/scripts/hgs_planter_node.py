@@ -560,7 +560,7 @@ class HGSPlanterNode:
         
         # Verifica duplicatas entre rotas
         for route_idx, route in enumerate(solution.routes):
-            for wp_id in route:
+            for wp_id in route:  # PETRIS: wp_id agora e virtual_client id
                 all_waypoints.append((wp_id, route_idx))
                 if wp_id in visited:
                     # Encontrar em qual rota estava antes
@@ -649,8 +649,8 @@ class HGSPlanterNode:
         rospy.loginfo(f"[SOLVER] Time limit: {self.solver_time_limit}s")
         
         solver = HGSSolver(drone_config)
-        distance_matrix = generator.get_individual_distance_matrix()
-        demands = generator.get_individual_demands()
+        distance_matrix = generator.get_distance_matrix()  # PETRIS
+        demands = generator.get_demands()  # PETRIS
         
         solution = solver.solve_with_autonomy(
             distance_matrix=distance_matrix,
@@ -770,8 +770,20 @@ class HGSPlanterNode:
             rospy.loginfo(f"[BATERIA] {self.battery.get_percent():.1f}% | {self.battery.voltage():.1f}V")
             rospy.loginfo(f"{'='*60}")
             
-            # Agora route contém IDs de waypoints individuais (1-indexed da matriz)
-            for wp_idx, wp_matrix_id in enumerate(route):
+            # PETRIS: rota contem IDs de virtual_clients - expandir para waypoints fisicos
+            physical_route = []
+            for vc_matrix_id in route:
+                vc_idx = vc_matrix_id - 1
+                if vc_idx < 0 or vc_idx >= len(self.generator.virtual_clients):
+                    rospy.logerr(f"[ERRO] VC id invalido: {vc_matrix_id}")
+                    continue
+                vc = self.generator.virtual_clients[vc_idx]
+                for wp in vc.waypoints:
+                    physical_route.append(wp.id + 1)  # +1 pra ser matrix_id (1-indexed)
+            rospy.loginfo(f"[PETRIS] Rota com {len(route)} VCs expandida em {len(physical_route)} waypoints fisicos")
+
+            # Agora physical_route contem IDs de waypoints fisicos (1-indexed)
+            for wp_idx, wp_matrix_id in enumerate(physical_route):
                 wp_start = time.time()
                 
                 # Converte ID da matriz (1-indexed) para índice do waypoint (0-indexed)
@@ -848,7 +860,7 @@ class HGSPlanterNode:
                     )
                     
                     rospy.loginfo(
-                        f"  WP {wp_idx+1}/{len(route)} | {pt['plant_type']} "
+                        f"  WP {wp_idx+1}/{len(physical_route)} | {pt['plant_type']} "
                         f"({pt['x']:.0f},{pt['y']:.0f}) | {wp_time:.1f}s | "
                         f"{progress:.1f}% | BAT: {self.battery.get_percent():.0f}%"
                     )
@@ -868,7 +880,7 @@ class HGSPlanterNode:
                         error="Drone não chegou ao waypoint"
                     )
                     rospy.logerr(
-                        f"  WP {wp_idx+1}/{len(route)} | {pt['plant_type']} "
+                        f"  WP {wp_idx+1}/{len(physical_route)} | {pt['plant_type']} "
                         f"({pt['x']:.0f},{pt['y']:.0f}) | PULADO - drone não chegou!"
                     )
             

@@ -2338,7 +2338,7 @@ class BenchmarkRunner:
         self.add_instance(BenchmarkInstance.from_grid(
             grid_size_x=15.0, grid_size_y=15.0, spacing=5.0,
             base_x=7.5, base_y=0.0, margin=2.5,
-            capacity=225, autonomy=2025.0,
+            capacity=225, autonomy=1500.0,
             name="small_10x10"
         ))
         
@@ -2346,7 +2346,7 @@ class BenchmarkRunner:
         self.add_instance(BenchmarkInstance.from_grid(
             grid_size_x=50.0, grid_size_y=50.0, spacing=5.0,
             base_x=25.0, base_y=0.0, margin=2.5,
-            capacity=225, autonomy=2025.0,
+            capacity=225, autonomy=1500.0,
             name="medium_50x50"
         ))
         
@@ -2354,7 +2354,7 @@ class BenchmarkRunner:
         self.add_instance(BenchmarkInstance.from_grid(
             grid_size_x=100.0, grid_size_y=100.0, spacing=5.0,
             base_x=50.0, base_y=0.0, margin=2.5,
-            capacity=225, autonomy=2025.0,
+            capacity=225, autonomy=1500.0,
             name="large_100x100"
         ))
         
@@ -2362,7 +2362,7 @@ class BenchmarkRunner:
         self.add_instance(BenchmarkInstance.from_grid(
             grid_size_x=200.0, grid_size_y=200.0, spacing=5.0,
             base_x=100.0, base_y=0.0, margin=2.5,
-            capacity=225, autonomy=2025.0,
+            capacity=225, autonomy=1500.0,
             name="xlarge_200x200"
         ))
     
@@ -2383,50 +2383,50 @@ class BenchmarkRunner:
         # Instância pequena - 25x25m com espaçamento 2.5m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=25.0, grid_size_y=25.0,
-            waypoint_spacing=2.5, line_spacing=2.5,
+            waypoint_spacing=5.0, line_spacing=5.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
-            autonomy=2025.0,
+            autonomy=1500.0,
             name="csdvrp_25x25"
         ))
         
         # Instância média - 50x50m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=50.0, grid_size_y=50.0,
-            waypoint_spacing=2.5, line_spacing=2.5,
+            waypoint_spacing=5.0, line_spacing=5.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
-            autonomy=2025.0,
+            autonomy=1500.0,
             name="csdvrp_50x50"
         ))
         
         # Instância grande - 75x75m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=75.0, grid_size_y=75.0,
-            waypoint_spacing=2.5, line_spacing=2.5,
+            waypoint_spacing=5.0, line_spacing=5.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
-            autonomy=2025.0,
+            autonomy=1500.0,
             name="csdvrp_75x75"
         ))
         
         # Instância muito grande - 100x100m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=100.0, grid_size_y=100.0,
-            waypoint_spacing=2.5, line_spacing=2.5,
+            waypoint_spacing=5.0, line_spacing=5.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
-            autonomy=2025.0,
+            autonomy=1500.0,
             name="csdvrp_100x100"
         ))
         
         # Instância extra grande - 150x150m (teste de escalabilidade)
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=150.0, grid_size_y=150.0,
-            waypoint_spacing=2.5, line_spacing=2.5,
+            waypoint_spacing=5.0, line_spacing=5.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
-            autonomy=2025.0,
+            autonomy=1500.0,
             name="csdvrp_150x150"
         ))
     
