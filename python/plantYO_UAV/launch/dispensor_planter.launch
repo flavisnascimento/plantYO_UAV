@@ -3,8 +3,8 @@
   <arg name="solver" default="HGS" />
   <arg name="grid_size_x" default="75.0" />
   <arg name="grid_size_y" default="75.0" />
-  <arg name="waypoint_spacing" default="5.0" />
-  <arg name="line_spacing" default="5.0" />
+  <arg name="waypoint_spacing" default="2.0" />
+  <arg name="line_spacing" default="3.0" />
   <arg name="base_x" default="37.5" />
   <arg name="base_y" default="0.0" />
   <arg name="cap_por_guilda" default="100" />

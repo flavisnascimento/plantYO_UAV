@@ -32,8 +32,8 @@ from grid_generator import GridGenerator, GridConfig, CommodityCapacity
 from hgs_solver import HGSSolver, DroneConfig, CVRPSolution
 from mission_logger import MissionLogger, BatteryModel
 
-CRUISING_ALT = 2.0   # Altitude de cruzeiro (voo entre pontos)
-PLANTING_ALT = 1.5   # Altitude de plantio (desce para dispensar)
+CRUISING_ALT = 2.5   # Altitude de cruzeiro (voo entre pontos)
+PLANTING_ALT = 2.5   # Altitude de plantio (desce para dispensar)
 TOLERANCE = 2.0      # Tolerância horizontal para chegada
 
 # Cores por tipo de planta (RGB)

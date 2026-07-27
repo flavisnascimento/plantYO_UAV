@@ -8,8 +8,8 @@
   <!-- Parâmetros do Talhão (25x25m) -->
   <arg name="grid_size_x" default="25.0" />
   <arg name="grid_size_y" default="25.0" />
-  <arg name="waypoint_spacing" default="5.0" />
-  <arg name="line_spacing" default="5.0" />
+  <arg name="waypoint_spacing" default="2.0" />
+  <arg name="line_spacing" default="3.0" />
   <arg name="base_x" default="12.5" />
   <arg name="base_y" default="0.0" />
 

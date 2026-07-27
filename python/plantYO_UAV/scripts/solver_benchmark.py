@@ -2383,7 +2383,7 @@ class BenchmarkRunner:
         # Instância pequena - 25x25m com espaçamento 2.5m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=25.0, grid_size_y=25.0,
-            waypoint_spacing=5.0, line_spacing=5.0,
+            waypoint_spacing=2.0, line_spacing=3.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
             autonomy=1500.0,
@@ -2393,7 +2393,7 @@ class BenchmarkRunner:
         # Instância média - 50x50m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=50.0, grid_size_y=50.0,
-            waypoint_spacing=5.0, line_spacing=5.0,
+            waypoint_spacing=2.0, line_spacing=3.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
             autonomy=1500.0,
@@ -2403,7 +2403,7 @@ class BenchmarkRunner:
         # Instância grande - 75x75m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=75.0, grid_size_y=75.0,
-            waypoint_spacing=5.0, line_spacing=5.0,
+            waypoint_spacing=2.0, line_spacing=3.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
             autonomy=1500.0,
@@ -2413,7 +2413,7 @@ class BenchmarkRunner:
         # Instância muito grande - 100x100m
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=100.0, grid_size_y=100.0,
-            waypoint_spacing=5.0, line_spacing=5.0,
+            waypoint_spacing=2.0, line_spacing=3.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
             autonomy=1500.0,
@@ -2423,7 +2423,7 @@ class BenchmarkRunner:
         # Instância extra grande - 150x150m (teste de escalabilidade)
         self.add_instance(BenchmarkInstance.from_grid_generator(
             grid_size_x=150.0, grid_size_y=150.0,
-            waypoint_spacing=5.0, line_spacing=5.0,
+            waypoint_spacing=2.0, line_spacing=3.0,
             seeds_per_waypoint=15,
             commodity_capacity=(100, 100, 100),
             autonomy=1500.0,
