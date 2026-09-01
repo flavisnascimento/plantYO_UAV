@@ -1,107 +1,163 @@
-<<<<<<< HEAD
-# MRS Computer Vision Examples
+# PlantYO UAV
 
-## C++
+ROS package for UAV-based aerial seeding in Cerrado restoration scenarios.
 
-* [Edge Detector](./cpp/edge_detector) - Comprehensive C++ ROS Example with OpenCV Edge detector
+The package provides mission planning, route generation, seed dispensing and
+Gazebo simulation using the MRS UAV System.
 
-## Python
+## Overview
 
-* [Blob Detector](./python/blob_detector) - Simple Python ROS Example with OpenCV Blob detector
+The system compares two dispenser configurations:
 
-# Disclaimer
+- `1comp`: single-compartment operation;
+- `3comp`: multi-compartment operation.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-=======
-# Blob Detector (UAV Planter)
+Both configurations use the same total payload. They differ in how the payload
+is partitioned and consumed during the mission.
 
-This package contains computer vision and control logic for a UAV planter system, designed to run within the MRS UAV System simulation environment.
+Supported planning methods:
 
-## 1. Requirements
+- `HGS`: CVRP solver;
+- `DAHA`: discrete Artificial Hummingbird Algorithm;
+- `NN`: nearest-neighbor algorithm;
+- `TSP`: TSP-based route construction and splitting.
 
-*   **OS:** Ubuntu 20.04 LTS
-*   **ROS Version:** Noetic Ninjemys
-*   **Core Dependency:** [MRS UAV System](https://github.com/ctu-mrs/mrs_uav_system) (Make sure the MRS simulation environment is installed and working).
+The official execution flow uses `tmux` and `dispensor_planter.launch`.
 
-## 2. Installation
+## Requirements
 
-These instructions assume you already have a ROS workspace created. If not, replace `catkin_ws` with your workspace name (e.g., `rma2025_ws`).
+- Ubuntu 20.04;
+- ROS Noetic;
+- Gazebo 11;
+- MRS UAV System;
+- Catkin tools;
+- tmux;
+- tmuxinator;
+- Python 3;
+- NumPy;
+- hygese for HGS.
 
-### Step 1: Clone the repository
-Navigate to the `src` folder of your catkin workspace and clone this repository.
+## Package structure
 
-```bash
-cd ~/catkin_ws/src
-git clone <PASTE_YOUR_GIT_REPO_URL_HERE>
+```text
+plantYO_UAV/
+├── CMakeLists.txt
+├── package.xml
+├── config/
+├── launch/
+├── models/
+├── scripts/
+│   ├── dispensor_planter_node.py
+│   ├── mission_planter_node.py
+│   ├── hgs_solver.py
+│   ├── solver_benchmark.py
+│   ├── HGS.py
+│   ├── DAHA.py
+│   ├── NN.py
+│   ├── TSP.py
+│   └── ...
+├── tmux/
+│   ├── setup_run.sh
+│   ├── start.sh
+│   └── session.yml
+└── worlds/
 ```
 
-### Step 2: Install dependencies
-It is good practice to ensure all dependencies defined in `package.xml` are installed.
+`mission_planter_node.py` contains the general mission logic.
+`dispensor_planter_node.py` selects the planning method and configures the
+dispenser operation.
+
+## Build
 
 ```bash
-cd ~/catkin_ws
-rosdep install --from-paths src --ignore-src -r -y
+source /opt/ros/noetic/setup.bash
+
+cd ~/plantyo_ws
+catkin build plantyo_uav
+source devel/setup.bash
 ```
 
-### Step 3: Build the package
-Compile the workspace to register the new package.
+Verify the package:
 
 ```bash
-cd ~/catkin_ws
-catkin build
-# OR if you use standard catkin_make:
-# catkin_make
+rospack find plantyo_uav
 ```
 
-### Step 4: Source the workspace
-Don't forget to source your workspace so ROS can find the `plantYO_UAV` package and its launch files.
+Expected result:
 
-```bash
-source ~/catkin_ws/devel/setup.bash
+```text
+/root/plantyo_ws/src/plantYO_UAV
 ```
-*(Tip: Add this line to your `~/.bashrc` if you haven't already)*
 
-## 3. Usage
-
-This package uses `tmuxinator` (via a shell script wrapper) to launch the simulation, the drone core, the computer vision node, and Rviz simultaneously.
-
-### Start the simulation
-Navigate to the package folder and run the start script:
+## Run a mission
 
 ```bash
-roscd plantYO_UAV/tmux
+source /opt/ros/noetic/setup.bash
+source ~/plantyo_ws/devel/setup.bash
+
+cd ~/plantyo_ws/src/plantYO_UAV/tmux
+./setup_run.sh NN 1comp 150
 ./start.sh
 ```
 
-### Stop the simulation
-To kill all sessions and close the windows safely:
+The setup command has the following format:
 
-```bash
-./kill.sh
+```text
+./setup_run.sh <algorithm> <mode> <grid_size>
 ```
 
-## 4. Configuration
+Examples:
 
-*   **Vision Logic:** The main detection logic is located in `scripts/mission_planter_node.py`.
-*   **Session Layout:** The tmux window layout is defined in `tmux/session.yml`.
-*   **Rviz:** Visualization config is in `config/planter_rviz.rviz`.
+```bash
+./setup_run.sh HGS 1comp 75
+./setup_run.sh DAHA 3comp 100
+./setup_run.sh NN 1comp 150
+./setup_run.sh TSP 3comp 150
+```
 
----
+`start.sh` uses `tmuxinator` and loads `tmux/session.yml`.
 
-### Troubleshooting
+## Stop the simulation
 
-**"Package not found" error:**
-If `start.sh` fails claiming it cannot find the package paths:
-1. Ensure you have run `catkin build`.
-2. Ensure you have sourced your workspace (`source ~/catkin_ws/devel/setup.bash`).
-3. Ensure the folder name in `src` matches the package name defined in `package.xml`.
->>>>>>> plantyo/main
+```bash
+tmux -L mrs kill-server
+```
+
+## Benchmark
+
+```bash
+cd ~/plantyo_ws/src/plantYO_UAV/scripts
+python3 run_benchmark.py
+```
+
+The benchmark uses the implementations in `HGS.py`, `DAHA.py`, `NN.py` and
+`TSP.py`. The `solver_benchmark.py` module provides compatibility imports for
+the mission node and benchmark runner.
+
+## Mission data
+
+Mission data is saved in:
+
+```text
+/root/plantyo_logs
+```
+
+The logger generates CSV files for waypoints and routes, as well as a JSON
+summary for each mission.
+
+ROS diagnostic logs are stored separately in:
+
+```text
+/root/.ros/log
+```
+
+## Development checks
+
+```bash
+cd ~/plantyo_ws/src/plantYO_UAV
+python3 -m py_compile scripts/*.py
+git diff --check
+git status
+```
+
+The ROS package name is `plantyo_uav`.
