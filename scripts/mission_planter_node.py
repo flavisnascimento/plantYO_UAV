@@ -1228,7 +1228,7 @@ class MissionPlanterNode:
             pkg_path = rospack.get_path('plantyo_uav')
         except:
             # Fallback para caminho absoluto
-            pkg_path = "/home/flanascimento/rma2025_ws/src/mrs_computer_vision_examples/python/plantYO_UAV"
+            pkg_path = "os.path.dirname(os.path.dirname(os.path.abspath(__file__)))"
         
         self.plant_models = {}
         

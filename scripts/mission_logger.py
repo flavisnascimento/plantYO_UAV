@@ -122,7 +122,7 @@ class MissionLogger:
                 rospack = rospkg.RosPack()
                 pkg_path = rospack.get_path('plantyo_uav')
             except:
-                pkg_path = "/home/flanascimento/rma2025_ws/src/mrs_computer_vision_examples/python/plantYO_UAV"
+                pkg_path = "os.path.dirname(os.path.dirname(os.path.abspath(__file__)))"
             output_dir = os.path.join(pkg_path, "logs")
         
         self.output_dir = output_dir
