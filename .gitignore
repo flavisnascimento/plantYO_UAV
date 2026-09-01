@@ -3,28 +3,29 @@ __pycache__/
 *.py[cod]
 *.so
 .Python
-build/
-dist/
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
 
-# Virtual envs
+# Ambientes virtuais
 venv/
 env/
 .venv/
 
-# IDE
+# IDE e editor
 .vscode/
 .idea/
 *.swp
 *~
+*.swo
 
-# ROS
+# ROS / Catkin
+build/
 devel/
 install/
-CATKIN_IGNORE
+.catkin_tools/
 .catkin_workspace
+CATKIN_IGNORE
 
 # Logs
 *.log
@@ -32,21 +33,25 @@ logs/
 mission_logs/
 plantyo_logs/
 plantyo_benchmarks/
+.ros/
 
-# Backups
+# Backups e arquivos temporários
 *.bak
 *.bak_*
-*.bak[0-9]
 *.orig
 *.tmp
+*.swp
 
-# Resultados
-python/plantYO_UAV/dispensor_def/results/
+# Resultados de experimentos
 results/
+dispensor_def/results/
 *.json.results
 
-# Gazebo
+# Bags do ROS
 *.bag
+*.bag.active
+
+# Arquivos do Gazebo
 *.world.bak
 
 # LaTeX
@@ -57,6 +62,6 @@ results/
 *.fdb_latexmk
 *.fls
 
-# OS
+# Sistema operacional
 .DS_Store
 Thumbs.db
