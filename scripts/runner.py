@@ -150,12 +150,17 @@ class BenchmarkRunner:
 
             for solver in self.solvers:
                 run_results = []
+                solver_runs = (
+                    num_runs
+                    if solver.name in {"HGS-CVRP", "D-AHA"}
+                    else 1
+                )
 
-                for run in range(num_runs):
+                for run in range(solver_runs):
                     run_seed = run
 
                     if verbose:
-                        print(f"    [{solver.name}] Run {run+1}/{num_runs}...", end=" ")
+                        print(f"    [{solver.name}] Run {run+1}/{solver_runs}...", end=" ")
 
                     result = solver.solve(
                         distance_matrix=instance.distance_matrix,
