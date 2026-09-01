@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 
-Resolve o subproblema de dividir um tour gigante em rotas factíveis sob
+Resolve o subproblema de dividir um tour em rotas factíveis sob
 restrições de capacidade e autonomia. Estratégia Route-First, Cluster-Second.
 
 Referências:
