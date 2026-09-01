@@ -327,7 +327,7 @@ class AdvancedAHA_Optimizer:
         self.best_solution = population[best_idx].copy()
         self.best_fitness = fitness_values[best_idx]
         
-        rospy.loginfo(f"[AHA-ADV] Iniciando otimização avançada. Fitness inicial: {self.best_fitness:.2f}")
+        rospy.loginfo(f"[AHA] Iniciando otimização avançada. Fitness inicial: {self.best_fitness:.2f}")
         
         # Loop principal do algoritmo
         for iteration in range(self.max_iterations):
@@ -359,14 +359,14 @@ class AdvancedAHA_Optimizer:
             population = new_population
             
             if iteration % 25 == 0:
-                rospy.loginfo(f"[AHA-ADV] Iteração {iteration}: Fitness = {self.best_fitness:.2f}")
+                rospy.logdebug(f"[AHA] Iteração {iteration}: Fitness = {self.best_fitness:.2f}")
         
         optimized_points = [points[i] for i in self.best_solution]
         
         # Calcula métricas detalhadas da solução final
         final_metrics = self.calculate_detailed_metrics(optimized_points)
         
-        rospy.loginfo(f"[AHA-ADV] Otimização concluída. Fitness final: {self.best_fitness:.2f}")
+        rospy.loginfo(f"[AHA] Otimização concluída. Fitness final: {self.best_fitness:.2f}")
         return optimized_points, self.best_fitness, final_metrics
     
     def calculate_detailed_metrics(self, optimized_points: List[Dict]) -> Dict:
@@ -449,7 +449,7 @@ class OptimizedPlanterNode:
         if self.use_line_arrangement:
             # Arranjo em linha reta
             points = self.arrange_points_in_line(points)
-            rospy.loginfo(f"[OPTIMIZER] Pontos organizados em linha {self.line_direction}")
+            rospy.logdebug(f"[OPTIMIZER] Pontos organizados em linha {self.line_direction}")
             
         elif self.optimize_trajectory:
             # Otimização avançada com AHA
@@ -459,7 +459,7 @@ class OptimizedPlanterNode:
             original_distance = optimizer.calculate_total_distance(points)
             original_spacing_violations = optimizer.calculate_spacing_violations(points)
             
-            rospy.loginfo(f"[OPTIMIZER] === ANÁLISE INICIAL ===")
+            rospy.logdebug(f"[OPTIMIZER] === ANÁLISE INICIAL ===")
             rospy.loginfo(f"[OPTIMIZER] Distância original: {original_distance:.2f}m")
             rospy.loginfo(f"[OPTIMIZER] Violações de espaçamento: {original_spacing_violations:.2f}")
             
@@ -470,7 +470,7 @@ class OptimizedPlanterNode:
             improvement_distance = ((original_distance - metrics['travel_distance']) / original_distance) * 100
             improvement_spacing = original_spacing_violations - metrics['spacing_violations']
             
-            rospy.loginfo(f"[OPTIMIZER] === RESULTADOS FINAIS ===")
+            rospy.logdebug(f"[OPTIMIZER] === RESULTADOS FINAIS ===")
             rospy.loginfo(f"[OPTIMIZER] Distância otimizada: {metrics['travel_distance']:.2f}m")
             rospy.loginfo(f"[OPTIMIZER] Melhoria em distância: {improvement_distance:.1f}%")
             rospy.loginfo(f"[OPTIMIZER] Violações de espaçamento reduzidas: {improvement_spacing:.2f}")
@@ -480,7 +480,7 @@ class OptimizedPlanterNode:
             points = optimized_points
             
         # Log da sequência final detalhada
-        rospy.loginfo("[OPTIMIZER] === SEQUÊNCIA DE PLANTIO OTIMIZADA ===")
+        rospy.logdebug("[OPTIMIZER] === SEQUÊNCIA DE PLANTIO OTIMIZADA ===")
         for i, point in enumerate(points):
             plant_type = optimizer.plant_constraints[point['name']]['type'] if hasattr(self, 'optimizer') else "unknown"
             rospy.loginfo(f"  {i+1}. {point['name']} ({plant_type}) - ({point['x']:.1f}, {point['y']:.1f})")
@@ -525,12 +525,12 @@ class OptimizedPlanterNode:
             r.position.z = CRUISING_ALT
             r.heading = p["yaw"]
             req.path.points.append(r)
-            rospy.loginfo(f"[PLAN] → {p['name']} at ({p['x']:.1f},{p['y']:.1f})")
+            rospy.logdebug(f"[PLAN] → {p['name']} at ({p['x']:.1f},{p['y']:.1f})")
         resp = self.path_srv(req)
         if not resp.success:
             rospy.logerr("[PLAN] failed: " + resp.message)
         else:
-            rospy.loginfo("[PLAN] trajectory sent")
+            rospy.logdebug("[PLAN] trajectory sent")
     def odom_callback(self, msg: Odometry):
         with self.lock:
             if self.planting or self.current_idx >= len(self.points):
@@ -539,7 +539,7 @@ class OptimizedPlanterNode:
             pt = self.points[self.current_idx]
             dist = math.hypot(pos.x - pt["x"], pos.y - pt["y"])
             if dist < TOLERANCE:
-                rospy.loginfo(f"[REACHED] {pt['name']} (idx={self.current_idx})")
+                rospy.logdebug(f"[REACHED] {pt['name']} (idx={self.current_idx})")
                 self.planting = True
                 rospy.sleep(0.1)
                 self.goto([pt["x"], pt["y"], CRUISING_ALT, pt["yaw"]])
@@ -555,12 +555,12 @@ class OptimizedPlanterNode:
                 self.planting = False
     def do_plant(self, pt):
         name, x, y, yaw = pt["name"], pt["x"], pt["y"], pt["yaw"]
-        rospy.loginfo(f"[PLANT] descending for {name}")
+        rospy.logdebug(f"[PLANT] descending for {name}")
         self.goto([x, y, PLANTING_ALT, yaw])
-        rospy.loginfo(f"[PLANT] spawning '{name}'")
+        rospy.logdebug(f"[PLANT] spawning '{name}'")
         self.spawn_plant(name, x, y)
         self.muda_pub.publish(name)
-        rospy.loginfo(f"[PLANT] ascending after {name}")
+        rospy.logdebug(f"[PLANT] ascending after {name}")
         self.goto([x, y, CRUISING_ALT, yaw])
     def goto(self, vec4):
         try:

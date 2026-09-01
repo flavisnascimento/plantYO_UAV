@@ -9,7 +9,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hgs_planter_node import HGSPlanterNode
+from mission_planter_node import MissionPlanterNode
 from grid_generator import GridGenerator, GridConfig, CommodityCapacity
 from hgs_solver import HGSSolver, DroneConfig
 from solver_benchmark import AHASolverBenchmark, NearestNeighborSolver, TSPGreedySolver, TSP2OptSolver
@@ -23,7 +23,7 @@ def _noop_init_node(*args, **kwargs):
 
 
 # --- escolhe o solver ---
-_orig_generate = HGSPlanterNode.generate_and_optimize
+_orig_generate = MissionPlanterNode.generate_and_optimize
 
 def _generate_multi_solver(self):
     solver_name = getattr(self, "_solver_name", "HGS").upper()
@@ -41,8 +41,12 @@ def _generate_multi_solver(self):
     generator = GridGenerator(config)
     generator.generate()
     effective_capacity = generator.get_effective_capacity()
-    dm = generator.get_distance_matrix()  # PETRIS
-    demands = generator.get_demands()  # PETRIS
+    # 1comp: forca o tanque da guilda ativa (ex 300), ignora a logica de 3comp
+    _ativas = [c for c in (self.capacity_erva, self.capacity_arbusto, self.capacity_arvore) if c and c > 0]
+    if len(_ativas) == 1:
+        effective_capacity = _ativas[0]
+    dm = generator.get_distance_matrix()
+    demands = generator.get_demands()
 
     if solver_name == "NN":
         solver = NearestNeighborSolver()
@@ -64,7 +68,7 @@ def _generate_multi_solver(self):
     rospy.loginfo(f"[SOLUCAO] Distancia: {result.total_distance:.2f}m, Rotas: {result.num_routes}")
     return generator, result
 
-HGSPlanterNode.generate_and_optimize = _generate_multi_solver
+MissionPlanterNode.generate_and_optimize = _generate_multi_solver
 
 
 class DispensorPlanter:
@@ -111,7 +115,7 @@ class DispensorPlanter:
             return _orig_get_param(name, default)
         rospy.get_param = _patched_get_param
         try:
-            p = HGSPlanterNode.__new__(HGSPlanterNode)
+            p = MissionPlanterNode.__new__(MissionPlanterNode)
             p._solver_name = self._solver_name
             p.__init__()
         finally:
@@ -119,7 +123,8 @@ class DispensorPlanter:
         return p
 
     def _run_1comp(self):
-        campanhas = [("erva", self._cap,0,0), ("arvore",0,0,self._cap), ("arbusto",0,self._cap,0)]
+        T = 3 * self._cap  # tanque cheio: single usa o payload total, mesmo T do 3comp
+        campanhas = [("erva", T,0,0), ("arvore",0,0,T), ("arbusto",0,T,0)]
         tempo_total = 0.0; dist_total = 0.0
         for nome, ce, cab, car in campanhas:
             rospy.set_param("/dispensor_planter/capacity_erva", ce)
@@ -156,16 +161,18 @@ def _effective_capacity_1comp(self):
     pattern_counts = {pt: 0 for pt in _PT}
     for pt in self.PLANT_PATTERN:
         pattern_counts[pt] += 1
-    cycles = []
-    for pt in _PT:
-        if pattern_counts[pt] > 0:
-            cap = self.config.commodity_capacity.get(pt)
-            if cap <= 0:
-                continue  # guilda inativa nesta campanha: ignora
-            seeds_per_cycle = pattern_counts[pt] * self.config.seeds_per_waypoint
-            cycles.append(cap // seeds_per_cycle)
-    if not cycles:
+    ativos = [pt for pt in _PT
+              if pattern_counts[pt] > 0 and (self.config.commodity_capacity.get(pt) or 0) > 0]
+    if not ativos:
         return 0
+    if len(ativos) == 1:
+        # 1comp: uma guilda por passagem, o tanque inteiro e dela, sem ciclo
+        return int(self.config.commodity_capacity.get(ativos[0]))
+    # 3comp: guildas intercaladas, limita pelo tipo que acaba primeiro no ciclo
+    cycles = []
+    for pt in ativos:
+        seeds_per_cycle = pattern_counts[pt] * self.config.seeds_per_waypoint
+        cycles.append(self.config.commodity_capacity.get(pt) // seeds_per_cycle)
     min_cycles = min(cycles)
     pattern_len = len(self.PLANT_PATTERN)
     return int(min_cycles * pattern_len * self.config.seeds_per_waypoint)

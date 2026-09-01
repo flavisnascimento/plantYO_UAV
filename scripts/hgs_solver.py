@@ -11,7 +11,6 @@ Considera:
   - Retornos à base para recarregar
 
 Referência:
-  Vidal, T. (2022). Hybrid genetic search for the CVRP: Open-source 
   implementation and SWAP* neighborhood. Computers & Operations Research.
 """
 
@@ -89,7 +88,6 @@ class HGSSolver:
               duration_limit: float = None,
               service_times: List[float] = None) -> CVRPSolution:
         """
-        Resolve o problema CVRP usando HGS (Vidal, 2022)
         
         Args:
             distance_matrix: Matriz de distâncias (índice 0 = base)
@@ -104,7 +102,6 @@ class HGSSolver:
             CVRPSolution com rotas otimizadas
             
         Referência:
-            Vidal, T. (2022). Hybrid genetic search for the CVRP: Open-source 
             implementation and SWAP* neighborhood. Computers & Operations Research.
         """
         start_time = time.time()
@@ -112,7 +109,7 @@ class HGSSolver:
         n_locations = len(demands)
         
         if verbose:
-            print(f"[HGS] Iniciando solver (Vidal 2022)...")
+            print(f"[HGS] Solver iniciado...")
             print(f"[HGS] Locais: {n_locations} (1 base + {n_locations-1} waypoints)")
             print(f"[HGS] Capacidade: {self.drone_config.dispenser_capacity} sementes")
             print(f"[HGS] Demanda total: {sum(demands)} sementes")
@@ -127,7 +124,8 @@ class HGSSolver:
         
         # Calcular número de veículos (fórmula do HGS original: ceil(1.3*demand/cap) + 3)
         total_demand = sum(demands)
-        min_vehicles = int(np.ceil(1.3 * total_demand / self.drone_config.dispenser_capacity)) + 3
+        n_clients = len(demands) - 1
+        min_vehicles = max(int(np.ceil(1.3 * total_demand / self.drone_config.dispenser_capacity)) + 3, n_clients)
         data['num_vehicles'] = min_vehicles
         data['depot'] = 0
         
@@ -400,7 +398,29 @@ class HGSSolver:
                 new_routes.append(current_sub_route)
         
         return new_routes
-    
+
+    def split_routes_by_capacity(self, routes, demands):
+        """Divide rotas cuja demanda excede a capacidade do tanque (cinto de seguranca)."""
+        capacity = self.drone_config.dispenser_capacity
+        new_routes = []
+        for route in routes:
+            if not route:
+                continue
+            current = []
+            current_demand = 0
+            for wp_id in route:
+                d = demands[wp_id]
+                if current and current_demand + d > capacity:
+                    new_routes.append(current)
+                    current = [wp_id]
+                    current_demand = d
+                else:
+                    current.append(wp_id)
+                    current_demand += d
+            if current:
+                new_routes.append(current)
+        return new_routes
+
     def solve_with_autonomy(self,
                             distance_matrix: np.ndarray,
                             demands: List[int],
@@ -413,7 +433,7 @@ class HGSSolver:
         Duas abordagens disponíveis:
         
         1. use_native_duration=True (RECOMENDADO):
-           Usa restrição de duração nativa do HGS (Vidal 2022)
+           Usa restrição de duração nativa do HGS 
            O solver considera autonomia durante a otimização
            Gera soluções globalmente melhores
         
@@ -448,7 +468,19 @@ class HGSSolver:
                 use_duration_constraint=True,
                 duration_limit=autonomy
             )
-            
+
+            # CINTO DE SEGURANCA: nenhuma rota pode exceder o tanque
+            if solution and solution.routes:
+                _orig = len(solution.routes)
+                _nr = self.split_routes_by_capacity(solution.routes, demands)
+                if len(_nr) != _orig:
+                    _td = self._calculate_total_distance(_nr, distance_matrix)
+                    solution = CVRPSolution(routes=_nr, total_distance=_td,
+                        num_routes=len(_nr), computation_time=solution.computation_time,
+                        solver_info={**solution.solver_info, 'capacity_splits': len(_nr)-_orig})
+                    if verbose:
+                        print(f"[HGS] Rotas divididas por capacidade: {_orig} -> {len(_nr)}")
+
             # Verificar se todas as rotas respeitam autonomia
             if solution and solution.routes:
                 violations = 0

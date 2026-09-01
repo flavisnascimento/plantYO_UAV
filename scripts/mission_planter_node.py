@@ -4,8 +4,6 @@ HGS Planter - Sistema de Plantio com Drone usando C-SDVRP
 VERSÃO FINAL: Commoditized Split Delivery VRP
 
 Baseado em:
-- Vidal (2022): Hybrid Genetic Search for CVRP
-- Petris (2024): Transformação C-SDVRP → CVRP
 
 Características:
 - Multi-commodity: 3 compartimentos (Erva, Arbusto, Árvore) com 100 cada
@@ -383,7 +381,7 @@ class MissionStats:
         rospy.loginfo(f"{'='*60}")
 
 
-class HGSPlanterNode:
+class MissionPlanterNode:
     """
     Nó ROS para plantio com drone usando C-SDVRP.
     
@@ -395,7 +393,7 @@ class HGSPlanterNode:
     """
     
     def __init__(self):
-        rospy.init_node("hgs_planter", anonymous=True)
+        rospy.init_node("mission_planter", anonymous=True)
         
         # Parâmetros do talhão - AJUSTADOS para melhor visualização
         self.grid_size_x = rospy.get_param("~grid_size_x", 25.0)
@@ -406,9 +404,9 @@ class HGSPlanterNode:
         self.base_y = rospy.get_param("~base_y", 0.0)
         
         # Parâmetros do drone
-        self.capacity_erva = rospy.get_param("~capacity_erva", 100)
-        self.capacity_arbusto = rospy.get_param("~capacity_arbusto", 100)
-        self.capacity_arvore = rospy.get_param("~capacity_arvore", 100)
+        self.capacity_erva = rospy.get_param("/dispensor_planter/capacity_erva", 100)
+        self.capacity_arbusto = rospy.get_param("/dispensor_planter/capacity_arbusto", 100)
+        self.capacity_arvore = rospy.get_param("/dispensor_planter/capacity_arvore", 100)
         self.drone_autonomy = rospy.get_param("~drone_autonomy", 600.0)
         self.reserve_percent = rospy.get_param("~reserve_percent", 0.10)
         self.seeds_per_waypoint = rospy.get_param("~seeds_per_waypoint", 15)
@@ -465,7 +463,7 @@ class HGSPlanterNode:
         rospy.wait_for_service('/gazebo/spawn_sdf_model')
         self.spawn_srv = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
         
-        rospy.loginfo("[DRONE] ✓ Todos os serviços disponíveis!")
+        rospy.loginfo("[DRONE] Todos os serviços disponíveis!")
         
         # Carrega modelo de planta
         self.load_plant_model()
@@ -493,11 +491,11 @@ class HGSPlanterNode:
         # ========================================
         # 3.5) VISUALIZAÇÃO NO RVIZ
         # ========================================
-        rospy.loginfo("\n[VIZ] Criando visualização no RViz...")
+        rospy.logdebug("\nCriando visualização no RViz...")
         self.visualizer = RouteVisualizer()
         rospy.sleep(0.5)  # Espera publisher conectar
         self.visualize_mission()
-        rospy.loginfo("[VIZ] ✓ Visualização publicada em /planter/visualization")
+        rospy.logdebug("Visualização publicada em /planter/visualization")
         
         # ========================================
         # 4) AGUARDA DRONE DECOLAR
@@ -523,7 +521,7 @@ class HGSPlanterNode:
         rate = rospy.Rate(2)
         for i in range(timeout * 2):
             if self.current_altitude > 1.0:
-                rospy.loginfo(f"[DRONE] ✓ Drone no ar! Altitude: {self.current_altitude:.1f}m")
+                rospy.loginfo(f"[DRONE] Drone no ar! Altitude: {self.current_altitude:.1f}m")
                 rospy.loginfo(f"[DRONE] Posição: ({self.current_x:.1f}, {self.current_y:.1f})")
                 break
             if i % 10 == 0:
@@ -552,7 +550,7 @@ class HGSPlanterNode:
             solution: CVRPSolution retornada pelo solver
             demands: Lista de demandas (índice 0 = depósito)
         """
-        rospy.loginfo("\n[VALIDAÇÃO] Verificando solução HGS...")
+        rospy.loginfo("\n[VALIDAÇÃO] Verificando solução...")
         
         visited = set()
         duplicates = []
@@ -560,7 +558,7 @@ class HGSPlanterNode:
         
         # Verifica duplicatas entre rotas
         for route_idx, route in enumerate(solution.routes):
-            for wp_id in route:  # PETRIS: wp_id agora e virtual_client id
+            for wp_id in route:
                 all_waypoints.append((wp_id, route_idx))
                 if wp_id in visited:
                     # Encontrar em qual rota estava antes
@@ -587,14 +585,13 @@ class HGSPlanterNode:
         elif missing:
             rospy.logwarn(f"[VALIDAÇÃO] ⚠ AVISO: {len(missing)} waypoints não serão visitados")
         else:
-            rospy.loginfo(f"[VALIDAÇÃO] ✓ Solução válida: {len(visited)} waypoints únicos em {len(solution.routes)} rotas")
+            rospy.loginfo(f"[VALIDAÇÃO] Solução válida: {len(visited)} waypoints únicos em {len(solution.routes)} rotas")
         
         return len(duplicates) == 0 and len(missing) == 0
     
     def generate_and_optimize(self) -> Tuple[GridGenerator, CVRPSolution]:
         """Gera grid e otimiza com C-SDVRP + HGS"""
         rospy.loginfo("\n" + "=" * 60)
-        rospy.loginfo("HGS-CVRP PLANTER - Vidal (2022)")
         rospy.loginfo("=" * 60)
         
         # Configuração do grid (com margem de 2.5m das bordas)
@@ -631,6 +628,9 @@ class HGSPlanterNode:
         
         # Capacidade efetiva baseada na proporção E-A-Á-A-E
         effective_capacity = generator.get_effective_capacity()
+        # FIX: Se for 1 compartimento, ignora a proporcao do 3comp e usa o tanque real
+        if sum(1 for c in [self.capacity_erva, self.capacity_arbusto, self.capacity_arvore] if c > 0) == 1:
+            effective_capacity = max(self.capacity_erva, self.capacity_arbusto, self.capacity_arvore)
         wps_per_trip = effective_capacity // self.seeds_per_waypoint
         
         rospy.loginfo(f"\n[DRONE] Capacidade por tipo: {self.capacity_erva}E + {self.capacity_arbusto}A + {self.capacity_arvore}Á")
@@ -649,8 +649,8 @@ class HGSPlanterNode:
         rospy.loginfo(f"[SOLVER] Time limit: {self.solver_time_limit}s")
         
         solver = HGSSolver(drone_config)
-        distance_matrix = generator.get_distance_matrix()  # PETRIS
-        demands = generator.get_demands()  # PETRIS
+        distance_matrix = generator.get_distance_matrix()
+        demands = generator.get_demands()
         
         solution = solver.solve_with_autonomy(
             distance_matrix=distance_matrix,
@@ -679,7 +679,7 @@ class HGSPlanterNode:
     def load_plant_model(self):
         """Carrega modelos de plantas (agora usa arquivos SDF)"""
         self.load_plant_models()
-        rospy.loginfo("[MODEL] ✓ Modelos 3D prontos para uso")
+        rospy.loginfo("[MODEL] Modelos 3D prontos para uso")
     
     def visualize_mission(self):
         """Desenha waypoints e rotas no RViz"""
@@ -688,15 +688,15 @@ class HGSPlanterNode:
         rospy.sleep(0.1)
         
         # DEBUG: Mostra coordenadas do campo e base
-        rospy.loginfo(f"[VIZ] Campo: (0,0) a ({self.grid_size_x}, {self.grid_size_y})")
-        rospy.loginfo(f"[VIZ] Base: {self.base_position}")
+        rospy.logdebug(f"Campo: (0,0) a ({self.grid_size_x}, {self.grid_size_y})")
+        rospy.logdebug(f"Base: {self.base_position}")
         
         # Mostra alguns waypoints para debug
         if self.generator.waypoints:
             wp_first = self.generator.waypoints[0]
             wp_last = self.generator.waypoints[-1]
-            rospy.loginfo(f"[VIZ] Primeiro waypoint: ({wp_first.x}, {wp_first.y})")
-            rospy.loginfo(f"[VIZ] Último waypoint: ({wp_last.x}, {wp_last.y})")
+            rospy.logdebug(f"Primeiro waypoint: ({wp_first.x}, {wp_first.y})")
+            rospy.logdebug(f"Último waypoint: ({wp_last.x}, {wp_last.y})")
         
         # Desenha limites do talhão (borda externa)
         self.visualizer.draw_field_boundary(self.grid_size_x, self.grid_size_y)
@@ -736,7 +736,7 @@ class HGSPlanterNode:
             self.visualizer.draw_route(route_points, color, route_idx)
         
         self.visualizer.publish()
-        rospy.loginfo(f"[VIZ] Desenhadas {min(10, len(self.solution.routes))} rotas no RViz")
+        rospy.logdebug(f"Desenhadas {min(10, len(self.solution.routes))} rotas no RViz")
 
     def execute_mission(self):
         """Executa toda a missão de forma síncrona com estatísticas"""
@@ -756,7 +756,7 @@ class HGSPlanterNode:
         
         rospy.loginfo(f"\n[MISSÃO] Total de plantas: {total_plants}")
         rospy.loginfo(f"[MISSÃO] Total de rotas: {len(self.solution.routes)}")
-        rospy.loginfo(f"[BATERIA] Capacidade: {self.battery.capacity_mah}mAh | Reserva: {self.battery.reserve_percent}%")
+        rospy.logdebug(f"Capacidade: {self.battery.capacity_mah}mAh | Reserva: {self.battery.reserve_percent}%")
         
         for route_idx, route in enumerate(self.solution.routes):
             self.stats.set_route(route_idx + 1)
@@ -767,10 +767,10 @@ class HGSPlanterNode:
             
             rospy.loginfo(f"\n{'='*60}")
             rospy.loginfo(f"ROTA {route_idx + 1}/{len(self.solution.routes)} - {len(route)} waypoints")
-            rospy.loginfo(f"[BATERIA] {self.battery.get_percent():.1f}% | {self.battery.voltage():.1f}V")
+            rospy.logdebug(f"{self.battery.get_percent():.1f}% | {self.battery.voltage():.1f}V")
             rospy.loginfo(f"{'='*60}")
             
-            # PETRIS: rota contem IDs de virtual_clients - expandir para waypoints fisicos
+
             physical_route = []
             for vc_matrix_id in route:
                 vc_idx = vc_matrix_id - 1
@@ -780,7 +780,6 @@ class HGSPlanterNode:
                 vc = self.generator.virtual_clients[vc_idx]
                 for wp in vc.waypoints:
                     physical_route.append(wp.id + 1)  # +1 pra ser matrix_id (1-indexed)
-            rospy.loginfo(f"[PETRIS] Rota com {len(route)} VCs expandida em {len(physical_route)} waypoints fisicos")
 
             # Agora physical_route contem IDs de waypoints fisicos (1-indexed)
             for wp_idx, wp_matrix_id in enumerate(physical_route):
@@ -910,14 +909,14 @@ class HGSPlanterNode:
                 battery_used_percent=100 - battery_before_recharge
             )
             
-            rospy.loginfo(f"[ROTA {route_idx+1}] ✓ Completa em {route_time:.1f}s (volta base: {base_time:.1f}s)")
-            rospy.loginfo(f"[BATERIA] Antes recarga: {battery_before_recharge:.1f}%")
+            rospy.loginfo(f"[ROTA {route_idx+1}] Completa em {route_time:.1f}s (volta base: {base_time:.1f}s)")
+            rospy.logdebug(f"Antes recarga: {battery_before_recharge:.1f}%")
             rospy.loginfo(f"[BASE] Recarregando (swap manual, {self.recharge_time:.0f}s)...")
             
             # Simula recarga (bateria cheia novamente)
             self.battery.recharge()
             rospy.sleep(self.recharge_time)
-            rospy.loginfo(f"[BATERIA] Após recarga: {self.battery.get_percent():.1f}%")
+            rospy.logdebug(f"Após recarga: {self.battery.get_percent():.1f}%")
         
         # Estatísticas de duplicatas
         unique_planted = len(self.planted_waypoint_ids)
@@ -926,7 +925,7 @@ class HGSPlanterNode:
             rospy.logwarn(f"\n[DUPLICATAS] {skipped_duplicates} waypoints foram pulados por já terem sido plantados!")
             rospy.logwarn(f"[DUPLICATAS] Isso indica que o HGS gerou duplicatas na solução.")
         else:
-            rospy.loginfo(f"\n[VALIDAÇÃO] ✓ Nenhuma duplicata detectada durante execução")
+            rospy.loginfo(f"\n[VALIDAÇÃO] Nenhuma duplicata detectada durante execução")
         
         rospy.loginfo(f"[RESULTADO] Waypoints únicos plantados: {unique_planted}")
         
@@ -958,8 +957,8 @@ class HGSPlanterNode:
         )
         csv_files = self.logger.save_to_csv()
         json_file = self.logger.save_to_json()
-        rospy.loginfo(f"[LOGGER] ✓ CSVs: {csv_files}")
-        rospy.loginfo(f"[LOGGER] ✓ JSON: {json_file}")
+        rospy.loginfo(f"[LOGGER] CSVs: {csv_files}")
+        rospy.loginfo(f"[LOGGER] JSON: {json_file}")
     
     def goto_and_wait(self, x: float, y: float, z: float, tolerance: float = 1.5) -> bool:
         """
@@ -1238,7 +1237,7 @@ class HGSPlanterNode:
             try:
                 with open(model_path, 'r') as f:
                     self.plant_models[plant_type] = f.read()
-                rospy.loginfo(f"[MODEL] ✓ Carregado: {plant_type}")
+                rospy.loginfo(f"[MODEL] Carregado: {plant_type}")
             except Exception as e:
                 rospy.logwarn(f"[MODEL] Erro ao carregar {plant_type}: {e}")
                 self.plant_models[plant_type] = self._get_fallback_model(plant_type)
@@ -1306,7 +1305,7 @@ class HGSPlanterNode:
 
 if __name__ == "__main__":
     try:
-        HGSPlanterNode()
+        MissionPlanterNode()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

@@ -33,7 +33,6 @@ Theoretical Foundation
 - TSP: Lin, S. & Kernighan, B.W. (1973). "An Effective Heuristic Algorithm
   for the Traveling-Salesman Problem." Operations Research, 21(2), 498-516.
 
-- Split Algorithm: Prins, C. (2004). "A simple and effective evolutionary
   algorithm for the vehicle routing problem." Computers & Operations Research.
 
 - CVRP Lower Bounds: Beasley, J.E. (1983). "Route first—cluster second methods
@@ -461,7 +460,6 @@ class JoaoTSPSolver(BaseSolver):
     .. [1] Lin, S. & Kernighan, B.W. (1973). "An Effective Heuristic Algorithm
            for the Traveling-Salesman Problem." Operations Research, 21(2).
     
-    .. [2] Prins, C. (2004). "A simple and effective evolutionary algorithm
            for the vehicle routing problem." Computers & Operations Research.
     
     Example
@@ -1058,7 +1056,6 @@ class JoaoTSPSolver(BaseSolver):
         Beasley, J.E. (1983). "Route first—cluster second methods for
         vehicle routing." Omega, 11(4), 403-408.
         
-        Prins, C. (2004). "A simple and effective evolutionary algorithm
         for the vehicle routing problem." Computers & Operations Research.
         """
         if not tour:

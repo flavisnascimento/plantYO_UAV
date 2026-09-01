@@ -3,13 +3,12 @@
 Grid Generator para Reflorestamento com Drone
 C-SDVRP - Commoditized Split Delivery VRP
 
-Implementa a transformação de Petris (2024):
+Implementa a transformação de clientes virtuais (2024):
 - Cada linha é dividida em clientes virtuais por COMMODITY
 - Cada commodity (Erva, Arbusto, Árvore) tem capacidade separada
 - Cliente virtual = porção de uma commodity que cabe no drone
 
 Referência:
-  Petris et al. (2024) - Heurística baseada em Restricted Master para C-SDVRP
   Demonstrou que transformação C-SDVRP → CVRP + HGS supera métodos especializados
 """
 
@@ -53,7 +52,6 @@ class Waypoint:
 @dataclass
 class VirtualClient:
     """
-    Cliente virtual para transformação C-SDVRP → CVRP (Petris 2024).
     
     Representa uma porção de uma linha que pode ser atendida em uma viagem,
     considerando a capacidade específica de cada commodity.
@@ -168,7 +166,6 @@ class GridConfig:
 
 class GridGenerator:
     """
-    Gera grid com transformação C-SDVRP → CVRP (Petris 2024).
     
     Cada linha é transformada em múltiplos clientes virtuais,
     um para cada porção de cada commodity que cabe no drone.
@@ -192,7 +189,7 @@ class GridGenerator:
         
     def generate(self) -> List[VirtualClient]:
         """
-        Gera clientes virtuais usando transformação Petris.
+        Gera clientes virtuais usando transformação de clientes virtuais.
         
         Para cada linha:
         1. Agrupa waypoints por commodity
@@ -253,8 +250,9 @@ class GridGenerator:
                     continue
                 total_demand = len(wps) * self.config.seeds_per_waypoint
                 
-                # Quantos splits necessários?
-                num_splits = int(np.ceil(total_demand / capacity))
+                # Quantos splits necessários? (limitado pela capacidade do compartimento)
+                max_wps = max(1, capacity // self.config.seeds_per_waypoint)
+                num_splits = int(np.ceil(len(wps) / max_wps))
                 wps_per_split = int(np.ceil(len(wps) / num_splits))
                 
                 for split_idx in range(num_splits):
@@ -505,7 +503,7 @@ class GridGenerator:
             by_commodity[c.commodity].append(c)
         
         print("=" * 60)
-        print("GRID DE PLANTIO - C-SDVRP (Petris 2024)")
+        print("GRID DE PLANTIO - C-SDVRP")
         print("=" * 60)
         print(f"Talhão: {self.config.grid_size_x}m x {self.config.grid_size_y}m")
         print(f"Espaçamento: {self.config.waypoint_spacing}m x {self.config.line_spacing}m")
@@ -522,7 +520,7 @@ class GridGenerator:
         print(f"Total waypoints: {total_wps}")
         print(f"Total sementes: {total_seeds}")
         print()
-        print(f"CLIENTES VIRTUAIS (transformação Petris):")
+        print(f"CLIENTES VIRTUAIS (transformação de clientes virtuais):")
         print(f"  Total: {len(self.virtual_clients)}")
         for pt in PlantType:
             clients = by_commodity[pt]
