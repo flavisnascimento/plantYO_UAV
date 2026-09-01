@@ -62,7 +62,7 @@ class HGSSolverBenchmark(BaseSolver):
             'service_times': [0.0] * len(demands)
         }
 
-        ap = self.hgs.AlgorithmParameters(timeLimit=time_limit)
+        ap = self.hgs.AlgorithmParameters(timeLimit=time_limit, seed=int(kwargs.get("seed", 0)))
         solver = self.hgs.Solver(parameters=ap, verbose=False)
 
         result = solver.solve_cvrp(data)

@@ -152,6 +152,8 @@ class BenchmarkRunner:
                 run_results = []
 
                 for run in range(num_runs):
+                    run_seed = run
+
                     if verbose:
                         print(f"    [{solver.name}] Run {run+1}/{num_runs}...", end=" ")
 
@@ -161,6 +163,7 @@ class BenchmarkRunner:
                         capacity=instance.capacity,
                         autonomy=instance.autonomy,
                         time_limit=time_limit,
+                        seed=run_seed,
                         instance_name=instance.name
                     )
 
@@ -168,6 +171,7 @@ class BenchmarkRunner:
                     result.feasible = validation['valid']
                     result.capacity_violations = len(validation['capacity_violations'])
                     result.autonomy_violations = len(validation['autonomy_violations'])
+                    result.metadata['seed'] = run_seed
 
                     if instance.optimal_known:
                         result.metadata['optimal'] = instance.optimal_known

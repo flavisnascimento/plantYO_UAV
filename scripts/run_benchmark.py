@@ -68,7 +68,7 @@ def main():
 
     report = runner.run(
         time_limit=30.0,
-        num_runs=10,
+        num_runs=100,
         verbose=True
     )
 

@@ -58,6 +58,9 @@ class AHASolverBenchmark(BaseSolver):
         por Split Ótimo. Reserva 5% do time_limit para o processamento final.
         """
         import random
+        seed = kwargs.get("seed")
+        if seed is not None:
+            random.seed(int(seed))
 
         start_time = time.time()
 
