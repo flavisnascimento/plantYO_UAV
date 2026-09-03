@@ -6,6 +6,7 @@ import time
 import json
 from typing import List, Dict
 import numpy as np
+import random
 
 from base import BaseSolver
 from result import SolverResult
@@ -150,14 +151,12 @@ class BenchmarkRunner:
 
             for solver in self.solvers:
                 run_results = []
-                solver_runs = (
-                    num_runs
-                    if solver.name in {"HGS-CVRP", "D-AHA"}
-                    else 1
-                )
+                solver_runs = 1 if solver.name.startswith("Nearest") else num_runs
 
                 for run in range(solver_runs):
                     run_seed = run
+                    random.seed(run_seed)
+                    np.random.seed(run_seed)
 
                     if verbose:
                         print(f"    [{solver.name}] Run {run+1}/{solver_runs}...", end=" ")
