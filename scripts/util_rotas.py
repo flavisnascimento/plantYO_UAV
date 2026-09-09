@@ -41,7 +41,7 @@ def routes_cost(routes: List[List[int]], dm: np.ndarray) -> float:
 
 
 def build_nn_tour(dm: np.ndarray, n: int) -> List[int]:
-    """Constrói um tour gigante por Nearest Neighbor a partir do depósito.
+    """Constrói um Giant Tour por Nearest Neighbor a partir do depósito.
 
     Args:
         dm: Matriz de distâncias NxN (índice 0 = depósito).
