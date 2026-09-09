@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 HGS Planter - Sistema de Plantio com Drone usando C-SDVRP
-VERSÃO FINAL: Commoditized Split Delivery VRP
 
 Baseado em:
 
