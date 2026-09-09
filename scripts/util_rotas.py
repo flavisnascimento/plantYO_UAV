@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 """
 Utilitários de rota compartilhados pelo pacote solver_benchmark.
-
-Reúne num único lugar contas que antes estavam copiadas em várias classes
-(distância de rota, custo de tour, demanda de rota, construção de tour por
-Nearest Neighbor). O cálculo é idêntico ao das versões originais; apenas
-deixou de estar duplicado.
 """
 
 from typing import List
