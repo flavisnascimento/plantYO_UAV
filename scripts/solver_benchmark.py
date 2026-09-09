@@ -4,9 +4,6 @@
 import os
 import sys
 
-# Garante que a pasta scripts/ (um nível acima deste pacote) esteja no sys.path,
-# para os imports de módulos irmãos (grid_generator, joao_tsp_solver) funcionarem
-# em qualquer diretório de trabalho.
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
 _SCRIPTS_DIR = os.path.dirname(_PKG_DIR)
