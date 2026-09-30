@@ -40,7 +40,7 @@ windows:
   - mission_planter:
       layout: tiled
       panes:
-        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=1comp solver:=NN grid_size_x:=150.0 grid_size_y:=150.0 base_x:=75.0 mission_name:=NN_1comp_grid150_20260901_140529
+        - waitForControl; sleep 10; roslaunch plantyo_uav dispensor_planter.launch modo:=3comp solver:=NN grid_size_x:=100.0 grid_size_y:=100.0 base_x:=50.0 mission_name:=NN_3comp_prop_grid100_20260929_132226 capacity_erva:=120 capacity_arbusto:=120 capacity_arvore:=60
   - takeoff:
       layout: tiled
       panes:

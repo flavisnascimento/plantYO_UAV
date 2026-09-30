@@ -8,9 +8,13 @@
   <arg name="base_x" default="37.5" />
   <arg name="base_y" default="0.0" />
   <arg name="cap_por_guilda" default="100" />
+  <arg name="capacity_erva" default="$(arg cap_por_guilda)" />
+  <arg name="capacity_arbusto" default="$(arg cap_por_guilda)" />
+  <arg name="capacity_arvore" default="$(arg cap_por_guilda)" />
   <arg name="seeds_per_waypoint" default="15" />
   <arg name="drone_autonomy" default="1500.0" />
-  <arg name="reserve_percent" default="0.10" />
+  <!-- 0.0: as margens de 0.9 bateria e 0.9 imprevistos ja estao no drone_autonomy -->
+  <arg name="reserve_percent" default="0.0" />
   <arg name="solver_time_limit" default="30.0" />
 
   <node name="dispensor_planter" pkg="plantyo_uav" type="dispensor_planter_node.py" output="screen">
@@ -23,9 +27,9 @@
     <param name="base_x" value="$(arg base_x)" />
     <param name="base_y" value="$(arg base_y)" />
     <param name="cap_por_guilda" value="$(arg cap_por_guilda)" />
-    <param name="capacity_erva" value="$(arg cap_por_guilda)" />
-    <param name="capacity_arbusto" value="$(arg cap_por_guilda)" />
-    <param name="capacity_arvore" value="$(arg cap_por_guilda)" />
+    <param name="capacity_erva" value="$(arg capacity_erva)" />
+    <param name="capacity_arbusto" value="$(arg capacity_arbusto)" />
+    <param name="capacity_arvore" value="$(arg capacity_arvore)" />
     <param name="seeds_per_waypoint" value="$(arg seeds_per_waypoint)" />
     <param name="drone_autonomy" value="$(arg drone_autonomy)" />
     <param name="reserve_percent" value="$(arg reserve_percent)" />

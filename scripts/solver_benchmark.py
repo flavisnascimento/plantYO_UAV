@@ -5,7 +5,7 @@ import os
 import sys
 
 # Garante que a pasta scripts/ (um nível acima deste pacote) esteja no sys.path,
-# para os imports de módulos irmãos (grid_generator, joao_tsp_solver) funcionarem
+# para os imports de módulos irmãos (grid_generator, lkh_tsp_solver) funcionarem
 # em qualquer diretório de trabalho.
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +20,7 @@ from base import BaseSolver
 from HGS import HGSSolverBenchmark
 from DAHA import AHASolverBenchmark
 from NN import NearestNeighborSolver
-from TSP import TSPGreedySolver, TSP2OptSolver, TSPExactSolver
+from TSP import TSPGreedySolver, TSP2OptSolver
 from runner import BenchmarkRunner
 
 __all__ = [
@@ -34,6 +34,5 @@ __all__ = [
     "NearestNeighborSolver",
     "TSPGreedySolver",
     "TSP2OptSolver",
-    "TSPExactSolver",
     "BenchmarkRunner",
 ]

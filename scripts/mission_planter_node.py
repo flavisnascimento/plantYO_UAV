@@ -407,8 +407,8 @@ class MissionPlanterNode:
         self.capacity_erva = rospy.get_param("/dispensor_planter/capacity_erva", 100)
         self.capacity_arbusto = rospy.get_param("/dispensor_planter/capacity_arbusto", 100)
         self.capacity_arvore = rospy.get_param("/dispensor_planter/capacity_arvore", 100)
-        self.drone_autonomy = rospy.get_param("~drone_autonomy", 600.0)
-        self.reserve_percent = rospy.get_param("~reserve_percent", 0.10)
+        self.drone_autonomy = rospy.get_param("~drone_autonomy", 1500.0)
+        self.reserve_percent = rospy.get_param("~reserve_percent", 0.0)
         self.seeds_per_waypoint = rospy.get_param("~seeds_per_waypoint", 15)
         
         # Parâmetros de bateria (valores AUMENTADOS para simulação visível)

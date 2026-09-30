@@ -33,13 +33,13 @@ except ImportError:
         HGSSolverBenchmark,
     )
 
-# Solvers TSP do João Rafael (opcional, módulo irmão joao_tsp_solver.py)
+# Solvers TSP do João Rafael (opcional, módulo irmão lkh_tsp_solver.py)
 try:
-    from joao_tsp_solver import JoaoTSPSolver
+    from lkh_tsp_solver import LKHTSPSolver
     JOAO_SOLVER_AVAILABLE = True
 except ImportError:
     JOAO_SOLVER_AVAILABLE = False
-    print("[WARNING] joao_tsp_solver não disponível. Solver João será pulado.")
+    print("[WARNING] lkh_tsp_solver não disponível. Solver João será pulado.")
 
 
 def main():
@@ -58,8 +58,8 @@ def main():
 
     # Solvers TSP com Split Ótimo (João Rafael)
     if JOAO_SOLVER_AVAILABLE:
-        runner.add_solver(JoaoTSPSolver(split_strategy='optimal', use_2opt_refinement=True))
-        runner.add_solver(JoaoTSPSolver(split_strategy='greedy', use_2opt_refinement=True))
+        runner.add_solver(LKHTSPSolver(split_strategy='optimal', use_2opt_refinement=True))
+        runner.add_solver(LKHTSPSolver(split_strategy='greedy', use_2opt_refinement=True))
     else:
         print("[WARNING] Solvers do João não disponíveis - pulando")
 

@@ -12,7 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mission_planter_node import MissionPlanterNode
 from grid_generator import GridGenerator, GridConfig, CommodityCapacity
 from hgs_solver import HGSSolver, DroneConfig
-from solver_benchmark import AHASolverBenchmark, NearestNeighborSolver, TSPGreedySolver, TSP2OptSolver
+from solver_benchmark import AHASolverBenchmark, NearestNeighborSolver
+from lkh_tsp_solver import LKHTSPSolver
 
 
 # guarda o init_node real
@@ -39,7 +40,7 @@ def _generate_multi_solver(self):
             erva=self.capacity_erva, arbusto=self.capacity_arbusto,
             arvore=self.capacity_arvore))
     generator = GridGenerator(config)
-    generator.generate()
+    clientes_virtuais = generator.generate()
     effective_capacity = generator.get_effective_capacity()
     # 1comp: forca o tanque da guilda ativa (ex 300), ignora a logica de 3comp
     _ativas = [c for c in (self.capacity_erva, self.capacity_arbusto, self.capacity_arvore) if c and c > 0]
@@ -52,18 +53,21 @@ def _generate_multi_solver(self):
         solver = NearestNeighborSolver()
     elif solver_name in ("DAHA", "D-AHA", "AHA"):
         solver = AHASolverBenchmark()
-    elif solver_name in ("LKH-GREEDY", "LKHGREEDY", "LKHG"):
-        solver = TSPGreedySolver()
-    elif solver_name in ("LKH-2OPT", "LKH2OPT", "LKH"):
-        solver = TSP2OptSolver()
+    elif solver_name in ("LKH", "LKH-TSP", "LIN-KERNIGHAN"):
+        solver = LKHTSPSolver()
     else:
         return _orig_generate(self)
 
     rospy.loginfo(f"[SOLVER] Resolvendo com {solver_name}...")
+    # coordenadas reais dos clientes virtuais, evita a reconstrucao por MDS
+    _bx, _by = generator.get_base_position()
+    coords = [(float(_bx), float(_by))] + [
+        (float(c.center_x), float(c.waypoints[0].y)) for c in clientes_virtuais]
     result = solver.solve(
         distance_matrix=dm, demands=demands,
         capacity=effective_capacity, autonomy=self.drone_autonomy,
-        time_limit=self.solver_time_limit, instance_name="gazebo")
+        time_limit=self.solver_time_limit, instance_name="gazebo",
+        coordinates=coords)
     self._validate_solution(result, demands)
     rospy.loginfo(f"[SOLUCAO] Distancia: {result.total_distance:.2f}m, Rotas: {result.num_routes}")
     return generator, result
@@ -85,9 +89,13 @@ class DispensorPlanter:
         rospy.init_node = _noop_init_node
 
         if self.modo == "3comp":
-            rospy.set_param("/dispensor_planter/capacity_erva", self._cap)
-            rospy.set_param("/dispensor_planter/capacity_arbusto", self._cap)
-            rospy.set_param("/dispensor_planter/capacity_arvore", self._cap)
+            ce  = rospy.get_param("~capacity_erva",    self._cap)
+            cab = rospy.get_param("~capacity_arbusto", self._cap)
+            car = rospy.get_param("~capacity_arvore",  self._cap)
+            rospy.set_param("/dispensor_planter/capacity_erva",    ce)
+            rospy.set_param("/dispensor_planter/capacity_arbusto", cab)
+            rospy.set_param("/dispensor_planter/capacity_arvore",  car)
+            rospy.loginfo(f"[DISPENSOR] Compartimentos 3comp: E={ce} Arb={cab} Arv={car}")
             t0 = time.time()
             self._planter = self._make_planter()
             dur = time.time() - t0

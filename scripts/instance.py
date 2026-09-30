@@ -52,7 +52,7 @@ class BenchmarkInstance:
                   base_y: float,
                   margin: float = 2.5,
                   capacity: int = 225,
-                  autonomy: float = 2025.0,
+                  autonomy: float = 1500.0,
                   demand_per_wp: int = 15,
                   name: str = "grid_instance"):
         """Cria instância a partir de um grid regular (como usado no plantio)."""
@@ -102,7 +102,7 @@ class BenchmarkInstance:
                             margin: float = 2.5,
                             seeds_per_waypoint: int = 15,
                             commodity_capacity: Tuple[int, int, int] = (100, 100, 100),
-                            autonomy: float = 2025.0,
+                            autonomy: float = 1500.0,
                             use_virtual_clients: bool = True,
                             name: str = None) -> 'BenchmarkInstance':
         """

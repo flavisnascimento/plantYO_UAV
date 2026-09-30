@@ -47,8 +47,8 @@ License
 
 Usage Example
 -------------
-    >>> from joao_tsp_solver import JoaoTSPSolver
-    >>> solver = JoaoTSPSolver(split_strategy='optimal')
+    >>> from lkh_tsp_solver import LKHTSPSolver
+    >>> solver = LKHTSPSolver(split_strategy='optimal')
     >>> result = solver.solve(
     ...     distance_matrix=dm,
     ...     demands=demands,
@@ -407,7 +407,7 @@ class BaseSolver(ABC):
 # MAIN SOLVER: João's TSP-Split Algorithm
 # =============================================================================
 
-class JoaoTSPSolver(BaseSolver):
+class LKHTSPSolver(BaseSolver):
     """
     TSP-Split Solver using Lin-Kernighan Heuristic.
     
@@ -464,7 +464,7 @@ class JoaoTSPSolver(BaseSolver):
     
     Example
     -------
-        >>> solver = JoaoTSPSolver(split_strategy='optimal')
+        >>> solver = LKHTSPSolver(split_strategy='optimal')
         >>> result = solver.solve(
         ...     distance_matrix=dm,
         ...     demands=[0, 15, 15, 15, 15],  # Depot + 4 waypoints
@@ -515,7 +515,7 @@ class JoaoTSPSolver(BaseSolver):
     @property
     def name(self) -> str:
         """Solver identifier for benchmarking."""
-        return f"João-LKH-TSP ({self.split_strategy})"
+        return f"LKH-TSP ({self.split_strategy})"
     
     @property
     def reference(self) -> str:
@@ -825,6 +825,12 @@ class JoaoTSPSolver(BaseSolver):
         List[int]
             Tour with original node indices.
         """
+        from collections import defaultdict, deque
+        fila = defaultdict(deque)
+        for wp in waypoint_indices:
+            wx, wy = coords[wp]
+            fila[(int(wx * 1000), int(wy * 1000))].append(wp)
+        
         tour = []
         
         if not os.path.exists(solution_file):
@@ -847,13 +853,12 @@ class JoaoTSPSolver(BaseSolver):
                             x = float(parts[1]) / 1000.0
                             y = float(parts[2]) / 1000.0
                             
-                            # Match to original waypoint
-                            for wp in waypoint_indices:
-                                wx, wy = coords[wp]
-                                if abs(wx - x) < 0.01 and abs(wy - y) < 0.01:
-                                    if wp not in tour:
-                                        tour.append(wp)
-                                    break
+                            # Clientes de guildas diferentes sobre o mesmo
+                            # trecho de linha tem coordenada identica, entao
+                            # cada coordenada guarda uma fila de indices.
+                            k = (int(float(parts[1])), int(float(parts[2])))
+                            if fila.get(k):
+                                tour.append(fila[k].popleft())
                     except (ValueError, IndexError):
                         continue
                         
@@ -1251,11 +1256,11 @@ def solve_cvrp(distance_matrix: np.ndarray,
     
     Example
     -------
-        >>> from joao_tsp_solver import solve_cvrp
+        >>> from lkh_tsp_solver import solve_cvrp
         >>> result = solve_cvrp(dm, demands, capacity=100, autonomy=500)
         >>> print(f"Total: {result.total_distance:.1f}m in {result.num_routes} routes")
     """
-    solver = JoaoTSPSolver(split_strategy=split_strategy)
+    solver = LKHTSPSolver(split_strategy=split_strategy)
     return solver.solve(
         distance_matrix=distance_matrix,
         demands=demands,
@@ -1314,7 +1319,7 @@ if __name__ == "__main__":
     # Solve with different strategies
     print("\n" + "-" * 70)
     print("Solving with Greedy Split...")
-    solver_greedy = JoaoTSPSolver(split_strategy='greedy')
+    solver_greedy = LKHTSPSolver(split_strategy='greedy')
     
     if solver_greedy.available:
         result_greedy = solver_greedy.solve(
@@ -1331,7 +1336,7 @@ if __name__ == "__main__":
     
     print("\n" + "-" * 70)
     print("Solving with Optimal Split...")
-    solver_optimal = JoaoTSPSolver(split_strategy='optimal')
+    solver_optimal = LKHTSPSolver(split_strategy='optimal')
     
     if solver_optimal.available:
         result_optimal = solver_optimal.solve(
