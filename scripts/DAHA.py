@@ -64,9 +64,12 @@ class AHASolverBenchmark(BaseSolver):
 
         start_time = time.time()
 
-        # Clientes virtuais: commodities pré-processadas na transformação
-        commodity_capacities = None
-        commodities = None
+        # Restricao por compartimento: a transformacao em clientes virtuais nao
+        # basta, porque uma rota pode juntar varios clientes da mesma guilda.
+        commodity_capacities = kwargs.get('commodity_capacities')
+        commodities = kwargs.get('commodities')
+        self._commodities = commodities
+        self._commodity_capacities = commodity_capacities
 
         n = len(demands) - 1  # Número de clientes (exclui depósito)
 
@@ -228,6 +231,22 @@ class AHASolverBenchmark(BaseSolver):
                 'autonomy': autonomy
             }
         )
+
+    def _cabe(self, route: List[int], demands: List[int], capacity: int) -> bool:
+        """Capacidade total e, se informada, capacidade de cada compartimento."""
+        if route_demand(route, demands) > capacity:
+            return False
+        comm = getattr(self, '_commodities', None)
+        caps = getattr(self, '_commodity_capacities', None)
+        if comm is None or not caps:
+            return True
+        cargas = {}
+        for c in route:
+            k = comm[c]
+            cargas[k] = cargas.get(k, 0) + demands[c]
+            if cargas[k] > caps.get(k, float('inf')):
+                return False
+        return True
 
     def _evaluate(self, sequence: List[int], demands: List[int],
                   capacity: int, autonomy: float, dm: np.ndarray,
@@ -441,7 +460,7 @@ class AHASolverBenchmark(BaseSolver):
                     route_b = routes[b_idx]
                     new_a = list(route_a); new_a[x_pos] = y
                     new_b = list(route_b); new_b[y_pos] = x
-                    if route_demand(new_a, demands) > capacity or route_demand(new_b, demands) > capacity:
+                    if not self._cabe(new_a, demands, capacity) or not self._cabe(new_b, demands, capacity):
                         continue
                     da = route_distance(new_a, dm); db = route_distance(new_b, dm)
                     if da > autonomy or db > autonomy:
@@ -491,7 +510,7 @@ class AHASolverBenchmark(BaseSolver):
                     route_b = routes[b_idx]
                     new_a = list(route_a); new_a.pop(x_pos)
                     new_b = list(route_b); new_b.insert(y_pos + 1, x)
-                    if route_demand(new_b, demands) > capacity:
+                    if not self._cabe(new_b, demands, capacity):
                         continue
                     da = route_distance(new_a, dm); db = route_distance(new_b, dm)
                     if db > autonomy:

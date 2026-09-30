@@ -64,7 +64,7 @@ class OptimalSplit:
 
             # Controle de commodities para C-SDVRP tradicional
             current_commodity_demands = {}
-            if commodity_capacities and commodities is None:
+            if commodity_capacities and commodities is not None:
                 current_commodity_demands = {pt: 0 for pt in commodity_capacities.keys()}
 
             for j in range(i, n):
@@ -80,10 +80,10 @@ class OptimalSplit:
 
                 # Restrições por commodity (C-SDVRP)
                 commodity_feasible = True
-                if current_commodity_demands and commodities is None:
+                if current_commodity_demands:
                     customer_commodity = commodities[customer]
-                    new_commodity_demand = current_commodity_demands[customer_commodity] + customer_demand
-                    if new_commodity_demand > commodity_capacities[customer_commodity]:
+                    new_commodity_demand = current_commodity_demands.get(customer_commodity, 0) + customer_demand
+                    if new_commodity_demand > commodity_capacities.get(customer_commodity, float('inf')):
                         commodity_feasible = False
 
                 if not commodity_feasible:
@@ -102,7 +102,7 @@ class OptimalSplit:
                 route_demand += customer_demand
                 if current_commodity_demands:
                     customer_commodity = commodities[customer]
-                    current_commodity_demands[customer_commodity] += customer_demand
+                    current_commodity_demands[customer_commodity] = current_commodity_demands.get(customer_commodity, 0) + customer_demand
 
                 if i == j:
                     route_distance = distance_matrix[0, customer] + dist_to_depot
@@ -159,7 +159,7 @@ class OptimalSplit:
         last_pos = 0  # Depósito
 
         current_commodity_demands = {}
-        if commodity_capacities and commodities is None:
+        if commodity_capacities and commodities is not None:
             current_commodity_demands = {pt: 0 for pt in commodity_capacities.keys()}
 
         for customer in sequence:
@@ -172,8 +172,8 @@ class OptimalSplit:
             commodity_feasible = True
             if current_commodity_demands:
                 cust_commodity = commodities[customer]
-                new_commodity_demand = current_commodity_demands[cust_commodity] + cust_demand
-                if new_commodity_demand > commodity_capacities[cust_commodity]:
+                new_commodity_demand = current_commodity_demands.get(cust_commodity, 0) + cust_demand
+                if new_commodity_demand > commodity_capacities.get(cust_commodity, float('inf')):
                     commodity_feasible = False
 
             if not current_route:
@@ -187,7 +187,7 @@ class OptimalSplit:
                 current_distance = new_distance
                 if current_commodity_demands:
                     cust_commodity = commodities[customer]
-                    current_commodity_demands[cust_commodity] += cust_demand
+                    current_commodity_demands[cust_commodity] = current_commodity_demands.get(cust_commodity, 0) + cust_demand
                 last_pos = customer
             else:
                 if current_route:

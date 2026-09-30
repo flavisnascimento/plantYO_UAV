@@ -36,6 +36,12 @@ class NearestNeighborSolver(BaseSolver):
         start_time = time.time()
         n = len(demands)
 
+        # Restricao por compartimento (opcional): guilda de cada cliente e
+        # capacidade de cada compartimento. Sem ela, confere so o total.
+        commodities = kwargs.get('commodities')
+        commodity_capacities = kwargs.get('commodity_capacities')
+        usa_compartimentos = commodities is not None and bool(commodity_capacities)
+
         # Waypoints não visitados (exclui depósito)
         unvisited = set(range(1, n))
         routes = []
@@ -45,6 +51,7 @@ class NearestNeighborSolver(BaseSolver):
             current_demand = 0
             current_distance = 0.0
             current_pos = 0  # Começa na base
+            cargas = {}  # sementes de cada guilda na rota atual
 
             while unvisited:
                 # Encontra vizinho mais próximo que caiba
@@ -54,6 +61,11 @@ class NearestNeighborSolver(BaseSolver):
                 for wp in unvisited:
                     dist_to_wp = distance_matrix[current_pos, wp]
                     dist_to_base = distance_matrix[wp, 0]
+
+                    if usa_compartimentos:
+                        k = commodities[wp]
+                        if cargas.get(k, 0) + demands[wp] > commodity_capacities.get(k, float('inf')):
+                            continue  # compartimento desta guilda nao comporta
 
                     if (current_demand + demands[wp] <= capacity and
                             current_distance + dist_to_wp + dist_to_base <= autonomy):
@@ -67,6 +79,9 @@ class NearestNeighborSolver(BaseSolver):
                 route.append(best_wp)
                 unvisited.remove(best_wp)
                 current_demand += demands[best_wp]
+                if usa_compartimentos:
+                    k = commodities[best_wp]
+                    cargas[k] = cargas.get(k, 0) + demands[best_wp]
                 current_distance += best_dist
                 current_pos = best_wp
 

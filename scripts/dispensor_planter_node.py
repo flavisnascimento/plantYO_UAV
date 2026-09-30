@@ -14,6 +14,8 @@ from grid_generator import GridGenerator, GridConfig, CommodityCapacity
 from hgs_solver import HGSSolver, DroneConfig
 from solver_benchmark import AHASolverBenchmark, NearestNeighborSolver
 from lkh_tsp_solver import LKHTSPSolver
+from compartimentos import dados_compartimentos
+from mission_planter_node import verificar_compartimentos
 
 
 # guarda o init_node real
@@ -41,11 +43,10 @@ def _generate_multi_solver(self):
             arvore=self.capacity_arvore))
     generator = GridGenerator(config)
     clientes_virtuais = generator.generate()
-    effective_capacity = generator.get_effective_capacity()
-    # 1comp: forca o tanque da guilda ativa (ex 300), ignora a logica de 3comp
-    _ativas = [c for c in (self.capacity_erva, self.capacity_arbusto, self.capacity_arvore) if c and c > 0]
-    if len(_ativas) == 1:
-        effective_capacity = _ativas[0]
+    # Restricao fisica: cada compartimento limita a sua guilda, e o total da rota
+    # e a soma dos compartimentos ativos (no 1comp, o tanque da guilda ativa).
+    commodities, caps = dados_compartimentos(generator)
+    effective_capacity = sum(c for c in caps.values() if c > 0)
     dm = generator.get_distance_matrix()
     demands = generator.get_demands()
 
@@ -67,8 +68,9 @@ def _generate_multi_solver(self):
         distance_matrix=dm, demands=demands,
         capacity=effective_capacity, autonomy=self.drone_autonomy,
         time_limit=self.solver_time_limit, instance_name="gazebo",
-        coordinates=coords)
+        coordinates=coords, commodities=commodities, commodity_capacities=caps)
     self._validate_solution(result, demands)
+    verificar_compartimentos(result.routes, demands, commodities, caps)
     rospy.loginfo(f"[SOLUCAO] Distancia: {result.total_distance:.2f}m, Rotas: {result.num_routes}")
     return generator, result
 

@@ -140,10 +140,13 @@ class BenchmarkInstance:
             # Clientes virtuais (transformação de clientes virtuais 2024)
             distance_matrix = generator.get_distance_matrix()
             demands = generator.get_demands()
-            commodities = generator.get_commodities()  # Mantém para validação, mas não passa para solvers
+            # Guilda de cada cliente e capacidade de cada compartimento: os
+            # solvers recebem as duas e respeitam cada compartimento, porque uma
+            # rota pode juntar varios clientes virtuais da mesma guilda.
+            from compartimentos import dados_compartimentos
+            commodities, commodity_capacities = dados_compartimentos(generator)
             num_clients = len(generator.virtual_clients)
-            capacity = config.commodity_capacity.total  # 300 sementes totais
-            commodity_capacities = None  # Solvers resolvem CVRP puro
+            capacity = sum(c for c in commodity_capacities.values() if c > 0)
 
             desc = (f"C-SDVRP Grid {grid_size_x}x{grid_size_y}m, "
                     f"padrão E-A-Á-A-E")

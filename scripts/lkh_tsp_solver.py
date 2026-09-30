@@ -624,12 +624,17 @@ class LKHTSPSolver(BaseSolver):
         
         tsp_time = time.time() - start_time
         
-        # Split tour into feasible routes
-        # Para clientes virtuais, não há necessidade de commodity constraints
+        # Split tour into feasible routes.
+        # Restricao por compartimento: uma rota pode juntar varios clientes
+        # virtuais da mesma guilda, entao a checagem por guilda e necessaria.
+        commodities = kwargs.get('commodities')
+        commodity_capacities = kwargs.get('commodity_capacities')
         if self.split_strategy == 'optimal':
-            routes = self._split_optimal(tour, demands, capacity, autonomy, distance_matrix)
+            routes = self._split_optimal(tour, demands, capacity, autonomy, distance_matrix,
+                                         commodity_capacities, commodities)
         else:
-            routes = self._split_greedy(tour, demands, capacity, autonomy, distance_matrix)
+            routes = self._split_greedy(tour, demands, capacity, autonomy, distance_matrix,
+                                        commodity_capacities, commodities)
         
         # Apply local search refinement
         if self.use_2opt_refinement:
@@ -914,7 +919,9 @@ class LKHTSPSolver(BaseSolver):
                       demands: List[int],
                       capacity: int,
                       autonomy: float,
-                      dm: np.ndarray) -> List[List[int]]:
+                      dm: np.ndarray,
+                      commodity_capacities: Dict = None,
+                      commodities: List = None) -> List[List[int]]:
         """
         Greedy sequential split algorithm.
         
@@ -965,8 +972,8 @@ class LKHTSPSolver(BaseSolver):
         current_distance = 0.0
         last_wp = 0  # Start at depot
         
-        # Para clientes virtuais, não há necessidade de commodity constraints
-        current_commodity_demands = None
+        usa_compartimentos = commodities is not None and bool(commodity_capacities)
+        cargas = {}  # sementes de cada guilda na rota atual
         
         for wp in tour:
             wp_demand = demands[wp]
@@ -977,15 +984,19 @@ class LKHTSPSolver(BaseSolver):
             potential_demand = current_demand + wp_demand
             potential_distance = current_distance + dist_to_wp + dist_to_base
             
-            # Para clientes virtuais, não há necessidade de commodity constraints
             commodity_feasible = True
-            
+            if usa_compartimentos:
+                k = commodities[wp]
+                if cargas.get(k, 0) + wp_demand > commodity_capacities.get(k, float('inf')):
+                    commodity_feasible = False
             if potential_demand <= capacity and potential_distance <= autonomy and commodity_feasible:
                 # Fits - add to current route
                 current_route.append(wp)
                 current_demand = potential_demand
                 current_distance = current_distance + dist_to_wp
                 last_wp = wp
+                if usa_compartimentos:
+                    cargas[k] = cargas.get(k, 0) + wp_demand
             else:
                 # Doesn't fit - close current route and start new
                 if current_route:
@@ -995,6 +1006,8 @@ class LKHTSPSolver(BaseSolver):
                 current_demand = wp_demand
                 current_distance = dm[0, wp]
                 last_wp = wp
+                if usa_compartimentos:
+                    cargas = {k: wp_demand}
         
         # Add final route
         if current_route:
@@ -1007,7 +1020,9 @@ class LKHTSPSolver(BaseSolver):
                        demands: List[int],
                        capacity: int,
                        autonomy: float,
-                       dm: np.ndarray) -> List[List[int]]:
+                       dm: np.ndarray,
+                       commodity_capacities: Dict = None,
+                       commodities: List = None) -> List[List[int]]:
         """
         Optimal split using dynamic programming.
         
@@ -1077,14 +1092,26 @@ class LKHTSPSolver(BaseSolver):
         # Fill DP table
         for i in range(1, n + 1):
             route_demand = 0
+            cargas = {}  # sementes de cada guilda no trecho tour[j..i-1]
             
             # Try all possible route start positions j
             for j in range(i - 1, -1, -1):
                 wp = tour[j]
                 route_demand += demands[wp]
                 
-                # Para clientes virtuais, não há necessidade de commodity constraints
-                commodity_feasible = True
+                # Restricao por compartimento: ao recuar j o trecho so cresce,
+                
+                # entao estourar uma guilda encerra a busca para este i.
+                
+                if commodities is not None and commodity_capacities:
+                
+                    k = commodities[wp]
+                
+                    cargas[k] = cargas.get(k, 0) + demands[wp]
+                
+                    if cargas[k] > commodity_capacities.get(k, float('inf')):
+                
+                        break
                 
                 # Pruning: if demand exceeds capacity, no need to check longer routes
                 if route_demand > capacity:
@@ -1110,7 +1137,8 @@ class LKHTSPSolver(BaseSolver):
             j = dp_pred[i]
             if j == -1:
                 # No valid split found - fallback to greedy
-                return self._split_greedy(tour, demands, capacity, autonomy, dm)
+                return self._split_greedy(tour, demands, capacity, autonomy, dm,
+                                          commodity_capacities, commodities)
             routes.append(tour[j:i])
             i = j
         

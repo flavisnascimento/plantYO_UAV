@@ -92,11 +92,10 @@ class BaseSolver(ABC):
                 })
                 validation['valid'] = False
 
-            # Verifica capacidades por commodity.
-            # Para clientes virtuais (C-SDVRP transformado), cada cliente virtual
-            # já respeita as capacidades por compartimento, então respeitar a
-            # capacity total (300) já respeita os compartimentos. Só valida quando
-            # commodities está explicitamente presente (modo waypoint individual).
+            # Verifica a capacidade de cada compartimento. Cada cliente virtual
+            # cabe no seu compartimento, mas uma rota pode juntar varios clientes
+            # da mesma guilda, entao respeitar o total NAO garante os
+            # compartimentos. Valida sempre que as guildas estao presentes.
             if instance.commodity_capacities and instance.commodities is not None:
                 commodity_demands = {}
                 for wp in route:

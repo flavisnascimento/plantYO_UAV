@@ -426,6 +426,48 @@ class HGSSolver:
                             demands: List[int],
                             time_limit: float = 30.0,
                             verbose: bool = True,
+                            use_native_duration: bool = True,
+                            commodities: Optional[List] = None,
+                            commodity_capacities: Optional[Dict] = None,
+                            seed: int = 0) -> CVRPSolution:
+        """
+        Resolve com HGS respeitando capacidade e autonomia.
+
+        Compartimento unico: HGS-CVRP (hygese), capacidade escalar.
+        Varios compartimentos: HGS do PyVRP com uma capacidade por
+        compartimento (hgs_compartimentos.py). A capacidade total nao basta,
+        porque uma rota pode juntar varios clientes virtuais da mesma guilda.
+        """
+        from hgs_compartimentos import multicompartimento, resolver
+        if not multicompartimento(commodities, commodity_capacities):
+            return self._solve_with_autonomy_base(distance_matrix, demands, time_limit,
+                                                  verbose, use_native_duration)
+
+        autonomy = self.drone_config.effective_autonomy
+        if verbose:
+            print(f"[HGS] PyVRP com capacidade por compartimento: {commodity_capacities}")
+            print(f"[HGS] Autonomia efetiva: {autonomy:.0f}m")
+        t0 = time.time()
+        routes, feasible = resolver(distance_matrix, demands, commodities,
+                                    commodity_capacities, autonomy, time_limit, seed)
+        solution = CVRPSolution(
+            routes=routes,
+            total_distance=self._calculate_total_distance(routes, distance_matrix),
+            num_routes=len(routes),
+            computation_time=time.time() - t0,
+            solver_info={'solver': 'HGS (PyVRP), capacidade por compartimento',
+                         'feasible': feasible, 'capacities': dict(commodity_capacities),
+                         'time_limit': time_limit, 'seed': seed})
+        self.last_solution = solution
+        if verbose:
+            print(f"[HGS] Rotas: {len(routes)} | Distancia: {solution.total_distance:.1f}m | viavel: {feasible}")
+        return solution
+
+    def _solve_with_autonomy_base(self,
+                            distance_matrix: np.ndarray,
+                            demands: List[int],
+                            time_limit: float = 30.0,
+                            verbose: bool = True,
                             use_native_duration: bool = True) -> CVRPSolution:
         """
         Resolve CVRP considerando autonomia do drone.

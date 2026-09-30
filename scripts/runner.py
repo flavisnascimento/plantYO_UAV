@@ -168,7 +168,9 @@ class BenchmarkRunner:
                         autonomy=instance.autonomy,
                         time_limit=time_limit,
                         seed=run_seed,
-                        instance_name=instance.name
+                        instance_name=instance.name,
+                        commodities=instance.commodities,
+                        commodity_capacities=instance.commodity_capacities
                     )
 
                     validation = solver.validate_solution(result, instance)

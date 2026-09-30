@@ -51,6 +51,27 @@ class HGSSolverBenchmark(BaseSolver):
 
         start_time = time.time()
 
+        # Varios compartimentos: HGS do PyVRP com uma capacidade por compartimento
+        commodities = kwargs.get('commodities')
+        commodity_capacities = kwargs.get('commodity_capacities')
+        from hgs_compartimentos import multicompartimento, resolver
+        if multicompartimento(commodities, commodity_capacities):
+            routes, feasible = resolver(distance_matrix, demands, commodities,
+                                        commodity_capacities, autonomy, time_limit,
+                                        int(kwargs.get("seed", 0)))
+            total_distance = sum(self._calc_route_distance(r, distance_matrix) for r in routes)
+            return SolverResult(
+                solver_name=self.name,
+                instance_name=kwargs.get('instance_name', 'unknown'),
+                routes=routes,
+                total_distance=total_distance,
+                num_routes=len(routes),
+                computation_time=time.time() - start_time,
+                feasible=feasible,
+                metadata={'implementacao': 'PyVRP', 'capacity': capacity, 'autonomy': autonomy,
+                          'commodity_capacities': dict(commodity_capacities)}
+            )
+
         # Configura dados para HGS
         data = {
             'distance_matrix': distance_matrix.astype(np.float64),

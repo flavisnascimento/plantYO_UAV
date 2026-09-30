@@ -28,6 +28,22 @@ from typing import List, Dict, Tuple
 
 from grid_generator import GridGenerator, GridConfig, CommodityCapacity
 from hgs_solver import HGSSolver, DroneConfig, CVRPSolution
+
+from compartimentos import dados_compartimentos, violacoes, cargas as _cargas_rota
+
+
+def verificar_compartimentos(routes, demands, commodities, caps):
+    """Aborta a missao se alguma rota excede a capacidade de um compartimento."""
+    estouros = violacoes(routes, demands, commodities, caps)
+    if estouros:
+        for i, k, carga, cap in estouros[:10]:
+            rospy.logerr(f"[COMPARTIMENTO] Rota {i+1}: {k} com {carga} sementes, compartimento de {cap}")
+        raise RuntimeError(f"{len(estouros)} estouros de compartimento; missao abortada")
+    maximo = {}
+    for r in routes:
+        for k, c in _cargas_rota(r, demands, commodities).items():
+            maximo[k] = max(maximo.get(k, 0), c)
+    rospy.loginfo(f"[COMPARTIMENTO] OK em {len(routes)} rotas. Maior carga por guilda: {maximo} | capacidades: {caps}")
 from mission_logger import MissionLogger, BatteryModel
 
 CRUISING_ALT = 2.5   # Altitude de cruzeiro (voo entre pontos)
@@ -626,15 +642,13 @@ class MissionPlanterNode:
             rospy.loginfo(f"[GRID] Range X: {min(xs):.1f} a {max(xs):.1f}")
             rospy.loginfo(f"[GRID] Range Y: {min(ys):.1f} a {max(ys):.1f}")
         
-        # Capacidade efetiva baseada na proporção E-A-Á-A-E
-        effective_capacity = generator.get_effective_capacity()
-        # FIX: Se for 1 compartimento, ignora a proporcao do 3comp e usa o tanque real
-        if sum(1 for c in [self.capacity_erva, self.capacity_arbusto, self.capacity_arvore] if c > 0) == 1:
-            effective_capacity = max(self.capacity_erva, self.capacity_arbusto, self.capacity_arvore)
-        wps_per_trip = effective_capacity // self.seeds_per_waypoint
+        # Restricao fisica: cada compartimento limita a sua guilda, e o total da
+        # rota e a soma dos compartimentos ativos (no 1comp, o tanque da guilda).
+        commodities, caps = dados_compartimentos(generator)
+        effective_capacity = sum(c for c in caps.values() if c > 0)
         
         rospy.loginfo(f"\n[DRONE] Capacidade por tipo: {self.capacity_erva}E + {self.capacity_arbusto}A + {self.capacity_arvore}Á")
-        rospy.loginfo(f"[DRONE] Capacidade efetiva: {effective_capacity} sementes ({wps_per_trip} waypoints/viagem)")
+        rospy.loginfo(f"[DRONE] Capacidade total: {effective_capacity} sementes, com restrição por compartimento")
         rospy.loginfo(f"[DRONE] Autonomia: {self.drone_autonomy}m")
         
         # Configuração do drone para o solver
@@ -656,11 +670,14 @@ class MissionPlanterNode:
             distance_matrix=distance_matrix,
             demands=demands,
             time_limit=self.solver_time_limit,
-            verbose=True
+            verbose=True,
+            commodities=commodities,
+            commodity_capacities=caps
         )
         
         # VALIDAÇÃO: Verificar duplicatas na solução
         self._validate_solution(solution, demands)
+        verificar_compartimentos(solution.routes, demands, commodities, caps)
         
         # Resumo da solução
         
